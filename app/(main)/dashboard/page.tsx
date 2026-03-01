@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
     Play, Users, Bot, Settings, Trophy,
     History, Swords, ChevronDown, User,
@@ -11,8 +11,6 @@ export default function ResponsiveChessDashboard() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar state
     const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
-
-    console.log("Sidebar State:", isSidebarOpen);
 
     // Mock User Data
     const user = { username: "Grandmaster_OKLCH", email: "pro@nexus.ai", elo: 1850, avatar: "G" };
@@ -26,16 +24,16 @@ export default function ResponsiveChessDashboard() {
                 <aside className={`absolute left-0 top-0 h-full w-72 bg-card border-r border-border p-6 transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-3 font-bold text-primary text-xl">
-                            <Swords size={24} /> <span>Nexus Chess</span>
+                            <Swords size={24} /> <span>Better Chess</span>
                         </div>
                         <button onClick={() => setIsSidebarOpen(false)}><X size={24} /></button>
                     </div>
                     <nav className="space-y-2">
-                        <SidebarItem icon={<Play size={20} />} label="Play" active isOpen={isSidebarOpen} />
-                        <SidebarItem icon={<Trophy size={20} />} label="Tournaments" isOpen={isSidebarOpen} />
-                        <SidebarItem icon={<History size={20} />} label="Archive" isOpen={isSidebarOpen} />
-                        <SidebarItem icon={<BarChart3 size={20} />} label="Stats" isOpen={isSidebarOpen} />
-                        <SidebarItem icon={<Users size={20} />} label="Social" isOpen={isSidebarOpen} />
+                        <SidebarItem icon={<Play size={20} />} label="Play" active isOpen={isDesktopCollapsed} />
+                        <SidebarItem icon={<Trophy size={20} />} label="Tournaments" isOpen={isDesktopCollapsed} />
+                        <SidebarItem icon={<History size={20} />} label="Archive" isOpen={isDesktopCollapsed} />
+                        <SidebarItem icon={<BarChart3 size={20} />} label="Stats" isOpen={isDesktopCollapsed} />
+                        <SidebarItem icon={<Users size={20} />} label="Social" isOpen={isDesktopCollapsed} />
                     </nav>
                 </aside>
             </div>
@@ -44,7 +42,7 @@ export default function ResponsiveChessDashboard() {
             <aside className={`hidden lg:flex flex-col bg-card border-r border-border transition-all duration-300 ${isDesktopCollapsed ? 'w-20' : 'w-64'}`}>
                 <div className="p-6 flex items-center gap-3 font-bold text-primary text-xl overflow-hidden whitespace-nowrap">
                     <Swords size={28} className="shrink-0" />
-                    {!isDesktopCollapsed && <span>Nexus Chess</span>}
+                    {!isDesktopCollapsed && <span>Better Chess</span>}
                 </div>
                 <nav className="flex-1 px-4 space-y-2">
                     <SidebarItem icon={<Play size={20} />} label="Play" active isOpen={isSidebarOpen} />
@@ -65,8 +63,14 @@ export default function ResponsiveChessDashboard() {
                 <header className="h-16 border-b border-border bg-card/50 backdrop-blur-md flex items-center justify-between px-4 lg:px-8 shrink-0">
 
                     <button
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className="w- flex items-center gap-4 p-3 rounded-lg hover:bg-accent transition-all lg:hidden"
+                    >
+                        <Menu size={20} /> 
+                    </button>
+                    <button
                         onClick={() => setIsDesktopCollapsed(!isDesktopCollapsed)}
-                        className="w- flex items-center gap-4 p-3 rounded-lg hover:bg-accent transition-all"
+                        className="w- flex items-center gap-4 p-3 rounded-lg hover:bg-accent transition-all hidden lg:flex"
                     >
                         <Menu size={20} /> 
                     </button>
@@ -117,8 +121,8 @@ export default function ResponsiveChessDashboard() {
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                            <div className="h-48 rounded-3xl border border-dashed border-border flex items-center justify-center text-muted-foreground">Recent Games</div>
-                            <div className="h-48 rounded-3xl border border-dashed border-border flex items-center justify-center text-muted-foreground">Daily Puzzle</div>
+                            <div className="bg-primary/5 h-48 rounded-3xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">Recent Games</div>
+                            <div className="bg-primary/5 h-48 rounded-3xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">Daily Puzzle</div>
                         </div>
                     </div>
                 </main>
@@ -156,7 +160,7 @@ function MobileTab({ icon, label, active = false }: any) {
 
 function GameCard({ icon, title, desc, primary = false }: any) {
     return (
-        <button className={`p-6 rounded-3xl border text-left transition-all ${primary ? 'bg-primary/5 border-primary ring-1 ring-primary/20' : 'bg-card border-border hover:border-primary/40'}`}>
+        <button className={`p-6 rounded-3xl border text-left transition-all ${primary ? 'bg-primary/5 border-primary ring-1 ring-primary/20' : 'bg-card border-border hover:border-primary/50'}`}>
             <div className="w-12 h-12 rounded-xl bg-background flex items-center justify-center border border-border mb-4">{icon}</div>
             <h3 className="font-bold">{title}</h3>
             <p className="text-xs text-muted-foreground">{desc}</p>
