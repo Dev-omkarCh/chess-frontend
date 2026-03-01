@@ -1,6 +1,8 @@
 "use client"
 import React, { useState } from 'react';
-import { Mail, Lock, User, Sparkles, ArrowRight, ArrowLeft, CheckCircle2, UserCircle2, CalendarDays, EyeOff, Eye } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, ArrowLeft, CheckCircle2, UserCircle2, CalendarDays, EyeOff, Eye } from 'lucide-react';
+import { useSignup } from '@/hooks/useSignup';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -11,7 +13,6 @@ export default function SignupPage() {
     password: '',
     fullName: '',
     gender: '', // 'male', 'female', 'other', 'prefer-not-to-say'
-    dob: '' // Date of birth
   });
 
   const handleNext = () => setCurrentStep(prev => prev + 1);
@@ -21,16 +22,18 @@ export default function SignupPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const { handleSignup, isLoading, error } = useSignup();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, send formData to your backend
     console.log('Form Submitted:', formData);
-    alert('Account created successfully!');
-    // Optionally redirect or show a success message
+    handleSignup(formData);
   };
 
   const isStep1Valid = formData.username && formData.email && formData.password;
-  const isStep2Valid = formData.fullName && formData.gender && formData.dob;
+  const isStep2Valid = formData.fullName && formData.gender;
+
+  //TODO : Implement Error Handling for Signup
 
   return (
     <div className="flex min-h-screen bg-background text-foreground transition-colors duration-500">
@@ -198,22 +201,6 @@ export default function SignupPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label htmlFor="dob" className="text-sm font-semibold">Date of Birth</label>
-                    <div className="relative">
-                      <CalendarDays className="absolute left-3.5 top-3 text-muted-foreground" size={18} />
-                      <input 
-                        type="date" 
-                        id="dob"
-                        name="dob"
-                        className="w-full bg-background border border-border rounded-xl py-3 pl-11 pr-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                        value={formData.dob}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                  </div>
-
                   <div className="flex gap-4 pt-2">
                     <button 
                       type="button" 
@@ -225,11 +212,16 @@ export default function SignupPage() {
                     </button>
                     <button 
                       type="submit" 
-                      disabled={!isStep2Valid}
-                      className="flex-1 bg-primary text-primary-foreground py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all shadow-lg shadow-primary/25"
+                      disabled={!isStep2Valid || isLoading}
+                      className={`flex-1 text-primary-foreground py-3.5 rounded-xl 
+                        font-bold flex items-center justify-center gap-2 hover:brightness-110 disabled:opacity-50 
+                        disabled:cursor-not-allowed active:scale-[0.98] transition-all shadow-lg shadow-primary/25
+                        ${isLoading ? "bg-primary/50" : "bg-primary"}`
+                      }
                     >
-                      Create Account
-                      <ArrowRight size={18} />
+                      {isLoading ? <LoadingSpinner /> :
+                      <> Create Account <ArrowRight size={18} /> </>
+                      }
                     </button>
                   </div>
                 </>
