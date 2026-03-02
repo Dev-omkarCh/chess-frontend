@@ -6,6 +6,7 @@ import {
     LogOut, BarChart3, Menu, X, Home, Search
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useRouter } from 'next/navigation';
 
 export default function ResponsiveChessDashboard() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -19,7 +20,7 @@ export default function ResponsiveChessDashboard() {
         <div className="flex h-screen bg-background text-foreground transition-colors duration-500 overflow-hidden">
 
             {/* --- 1. MOBILE SIDEBAR OVERLAY (Drawer) --- */}
-            <div className={`fixed inset-0 z-[100] lg:hidden transition-opacity duration-300 ${isSidebarOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}>
+            <div className={`fixed inset-0 z-100 lg:hidden transition-opacity duration-300 ${isSidebarOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}>
                 <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
                 <aside className={`absolute left-0 top-0 h-full w-72 bg-card border-r border-border p-6 transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
                     <div className="flex items-center justify-between mb-8">
@@ -70,7 +71,7 @@ export default function ResponsiveChessDashboard() {
                     </button>
                     <button
                         onClick={() => setIsDesktopCollapsed(!isDesktopCollapsed)}
-                        className="w- flex items-center gap-4 p-3 rounded-lg hover:bg-accent transition-all hidden lg:flex"
+                        className="w- items-center gap-4 p-3 rounded-lg hover:bg-accent transition-all hidden lg:flex"
                     >
                         <Menu size={20} /> 
                     </button>
@@ -91,12 +92,12 @@ export default function ResponsiveChessDashboard() {
                             </button>
 
                             {isProfileOpen && (
-                                <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-2xl shadow-2xl p-2 z-[110]">
+                                <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-2xl shadow-2xl p-2 z-110">
                                     <div className="p-3 border-b border-border mb-1 text-sm">
                                         <p className="font-bold truncate">{user.username}</p>
                                         <p className="text-muted-foreground text-xs truncate">{user.email}</p>
                                     </div>
-                                    <DropdownItem icon={<User size={16} />} label="Profile" />
+                                    <DropdownItem icon={<User size={16} />} label="Profile" path="/profile" />
                                     <DropdownItem icon={<BarChart3 size={16}/>} label="Performance" />
                                     <div className="h-px bg-border my-2" />
                                     <DropdownItem icon={<LogOut size={16} />} label="Logout" variant="danger" />
@@ -168,9 +169,12 @@ function GameCard({ icon, title, desc, primary = false }: any) {
     );
 }
 
-function DropdownItem({ icon, label, variant }: any) {
+function DropdownItem({ icon, label, variant, path }: any) {
+    const router = useRouter();
     return (
-        <button className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-sm transition-colors ${variant === 'danger' ? 'text-red-500 hover:bg-red-500/80 hover:text-white' : 'hover:bg-accent'}`}>
+        <button 
+        onClick={() => path && router.push(path)}
+        className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-sm transition-colors ${variant === 'danger' ? 'text-red-500 hover:bg-red-500/80 hover:text-white' : 'hover:bg-accent'}`}>
             {icon} {label}
         </button>
     );
