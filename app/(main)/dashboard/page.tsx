@@ -7,14 +7,15 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useRouter } from 'next/navigation';
+import { RootState } from '@/lib/store';
+import { useSelector } from 'react-redux';
 
 export default function ResponsiveChessDashboard() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar state
     const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
-
-    // Mock User Data
-    const user = { username: "Grandmaster_OKLCH", email: "pro@nexus.ai", elo: 1850, avatar: "G" };
+    const router = useRouter();
+    const user = useSelector((state: RootState) => state.auth.user);
 
     return (
         <div className="flex h-screen bg-background text-foreground transition-colors duration-500 overflow-hidden">
@@ -67,38 +68,38 @@ export default function ResponsiveChessDashboard() {
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         className="w- flex items-center gap-4 p-3 rounded-lg hover:bg-accent transition-all lg:hidden"
                     >
-                        <Menu size={20} /> 
+                        <Menu size={20} />
                     </button>
                     <button
                         onClick={() => setIsDesktopCollapsed(!isDesktopCollapsed)}
                         className="w- items-center gap-4 p-3 rounded-lg hover:bg-accent transition-all hidden lg:flex"
                     >
-                        <Menu size={20} /> 
+                        <Menu size={20} />
                     </button>
 
                     <div className="flex items-center gap-4 ml-auto">
                         <div className="bg-primary/10 px-3 py-1 rounded-full border border-primary/20 flex items-center gap-2">
                             <Trophy size={14} className="text-primary" />
-                            <span className="text-xs lg:text-sm font-bold text-primary">{user.elo}</span>
+                            <span className="text-xs lg:text-sm font-bold text-primary">{user?.elo}</span>
                         </div>
 
                         <ThemeToggle />
 
                         <div className="relative">
                             <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-accent transition-all">
-                                <span className="text-sm font-medium hidden sm:block">{user.username}</span>
-                                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">{user.avatar}</div>
+                                <span className="text-sm font-medium hidden sm:block">{user?.username}</span>
+                                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">{user?.profilePicture}</div>
                                 <ChevronDown size={14} className="hidden sm:block" />
                             </button>
 
                             {isProfileOpen && (
                                 <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-2xl shadow-2xl p-2 z-110">
                                     <div className="p-3 border-b border-border mb-1 text-sm">
-                                        <p className="font-bold truncate">{user.username}</p>
-                                        <p className="text-muted-foreground text-xs truncate">{user.email}</p>
+                                        <p className="font-bold truncate">{user?.username}</p>
+                                        <p className="text-muted-foreground text-xs truncate">{user?.email}</p>
                                     </div>
                                     <DropdownItem icon={<User size={16} />} label="Profile" path="/profile" />
-                                    <DropdownItem icon={<BarChart3 size={16}/>} label="Performance" />
+                                    <DropdownItem icon={<BarChart3 size={16} />} label="Performance" />
                                     <div className="h-px bg-border my-2" />
                                     <DropdownItem icon={<LogOut size={16} />} label="Logout" variant="danger" />
                                 </div>
@@ -116,9 +117,25 @@ export default function ResponsiveChessDashboard() {
                         </header>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-                            <GameCard icon={<Play className="text-emerald-500" />} title="Quick Play" desc="10 min Rapid" primary />
-                            <GameCard icon={<Users className="text-blue-500" />} title="Friend" desc="Challenge someone" />
-                            <GameCard icon={<Bot className="text-purple-500" />} title="Computer" desc="Stockfish level 8" />
+                            <GameCard
+                                icon={<Play className="text-emerald-500" />}
+                                title="Quick Play"
+                                desc="10 min Rapid"
+                                primary
+                                onClick={() => router.push("/match-making")}
+                            />
+                            <GameCard
+                                icon={<Users className="text-blue-500" />}
+                                title="Friend"
+                                desc="Challenge someone"
+                                onClick={() => router.push("/social")}
+                            />
+                            <GameCard
+                                icon={<Bot className="text-purple-500" />}
+                                title="Computer"
+                                desc="Stockfish level 8"
+                                onClick={() => router.push("/playBot")}
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -159,9 +176,20 @@ function MobileTab({ icon, label, active = false }: any) {
     );
 }
 
-function GameCard({ icon, title, desc, primary = false }: any) {
+interface GameCardProps {
+    icon: any,
+    title: string,
+    desc: string,
+    primary?: boolean,
+    onClick: () => void
+}
+
+function GameCard({ icon, title, desc, primary = false, onClick }: GameCardProps) {
     return (
-        <button className={`p-6 rounded-3xl border text-left transition-all ${primary ? 'bg-primary/5 border-primary ring-1 ring-primary/20' : 'bg-card border-border hover:border-primary/50'}`}>
+        <button
+            className={`p-6 rounded-3xl border text-left transition-all ${primary ? 'bg-primary/5 border-primary ring-1 ring-primary/20' : 'bg-card border-border hover:border-primary/50'}`}
+            onClick={onClick}
+        >
             <div className="w-12 h-12 rounded-xl bg-background flex items-center justify-center border border-border mb-4">{icon}</div>
             <h3 className="font-bold">{title}</h3>
             <p className="text-xs text-muted-foreground">{desc}</p>
@@ -172,9 +200,9 @@ function GameCard({ icon, title, desc, primary = false }: any) {
 function DropdownItem({ icon, label, variant, path }: any) {
     const router = useRouter();
     return (
-        <button 
-        onClick={() => path && router.push(path)}
-        className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-sm transition-colors ${variant === 'danger' ? 'text-red-500 hover:bg-red-500/80 hover:text-white' : 'hover:bg-accent'}`}>
+        <button
+            onClick={() => path && router.push(path)}
+            className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-sm transition-colors ${variant === 'danger' ? 'text-red-500 hover:bg-red-500/80 hover:text-white' : 'hover:bg-accent'}`}>
             {icon} {label}
         </button>
     );

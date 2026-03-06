@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useLogin } from '@/hooks/useLogin';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ export default function LoginPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const { handleLogin, isLoading, error } = useLogin();
+  const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,7 +152,11 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account? <button className="text-primary font-bold hover:underline">Create one</button>
+            Don&apos;t have an account?
+            <button
+              className="text-primary font-bold hover:underline"
+              onClick={() => router.push("/signup")}
+            >Create one</button>
           </p>
         </div>
       </div>

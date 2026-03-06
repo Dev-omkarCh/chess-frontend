@@ -2,19 +2,22 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Users, Bot, BarChart3, 
-  Sparkles, Trophy, Zap, ChevronRight 
+import {
+  Users, Bot, BarChart3,
+  Sparkles, Trophy, Zap, ChevronRight
 } from 'lucide-react';
+import Navbar from '@/components/Navbar';
 
 const HomePage = () => {
+
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+      <Navbar />
       <main className="max-w-7xl mx-auto px-6 py-10 md:py-20">
-        
+
         {/* --- Hero Section --- */}
         <section className="grid lg:grid-cols-12 gap-12 items-center">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="lg:col-span-7 space-y-8"
@@ -30,10 +33,10 @@ const HomePage = () => {
             </h1>
 
             <p className="text-muted-foreground text-lg md:text-xl max-w-lg leading-relaxed">
-              The world's most advanced chess platform with integrated neural assistance. 
+              The world's most advanced chess platform with integrated neural assistance.
               Join 2M+ players globally.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4">
               <button className="bg-primary hover:scale-105 text-white px-10 py-5 rounded-2xl font-black transition-all flex items-center justify-center gap-3 shadow-xl shadow-primary/20">
                 PLAY NOW
@@ -47,25 +50,25 @@ const HomePage = () => {
 
           {/* --- Responsive Feature Grid --- */}
           <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FeatureCard 
-              icon={<Users className="text-blue-500" />} 
-              title="Social Play" 
-              desc="Add friends & create clubs." 
+            <FeatureCard
+              icon={<Users className="text-blue-500" />}
+              title="Social Play"
+              desc="Add friends & create clubs."
             />
-            <FeatureCard 
-              icon={<Bot className="text-purple-500" />} 
-              title="Tactical Bots" 
-              desc="Adaptive AI personalities." 
+            <FeatureCard
+              icon={<Bot className="text-purple-500" />}
+              title="Tactical Bots"
+              desc="Adaptive AI personalities."
             />
-            <FeatureCard 
-              icon={<BarChart3 className="text-emerald-500" />} 
-              title="Analytics" 
-              desc="Precision PGN review." 
+            <FeatureCard
+              icon={<BarChart3 className="text-emerald-500" />}
+              title="Analytics"
+              desc="Precision PGN review."
             />
-            <FeatureCard 
-              icon={<Trophy className="text-amber-500" />} 
-              title="Leagues" 
-              desc="Compete for real prizes." 
+            <FeatureCard
+              icon={<Trophy className="text-amber-500" />}
+              title="Leagues"
+              desc="Compete for real prizes."
             />
           </div>
         </section>
@@ -81,7 +84,7 @@ const HomePage = () => {
                   <span className="text-muted-foreground">Start Mastering.</span>
                 </h2>
                 <p className="text-muted-foreground dark:text-slate-400">
-                  Our subscription gives you access to real-time AI move-probability 
+                  Our subscription gives you access to real-time AI move-probability
                   and a personal coach that talks you through your mistakes as you make them.
                 </p>
                 <div className="space-y-4">
@@ -128,7 +131,7 @@ const HomePage = () => {
 };
 
 const FeatureCard = ({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) => (
-  <motion.div 
+  <motion.div
     whileHover={{ y: -8, scale: 1.02 }}
     className="p-8 bg-card hover:bg-card-hover border border-border rounded-3xl hover:border-primary/50 transition-all cursor-pointer shadow-sm hover:shadow-xl"
   >

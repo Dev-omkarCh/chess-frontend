@@ -6,6 +6,7 @@ import {
   Globe, Calendar, Camera, ShieldCheck,
   TrendingUp, MapPin
 } from 'lucide-react';
+import { EditProfileDialog } from '@/components/profile/EditDailog';
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('games');
@@ -150,6 +151,8 @@ export default function ProfilePage() {
               )}
             </div>
           </main>
+
+          <EditProfileDialog isOpen={isEditing} onOpenChange={setIsEditing} />
 
         </div>
       </div>

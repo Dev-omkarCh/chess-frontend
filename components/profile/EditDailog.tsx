@@ -2,7 +2,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter 
 } from "@/components/ui/dialog"
 
-export function EditProfileDialog({ isOpen, onOpenChange }: any) {
+export function EditProfileDialog({ isOpen, onOpenChange }: { isOpen : boolean, onOpenChange : any}) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-125 bg-card border-border rounded-[2.5rem] p-8">
