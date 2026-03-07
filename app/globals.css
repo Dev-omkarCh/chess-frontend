@@ -19,14 +19,17 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
 }
 
 :root {
   /* --- LIGHT MODE (Clean & Airy) --- */
 
   /* Modern Blue Hue */
-  --h: 180;  /* [60, 180] */
-  
+  --h: 180;
+  /* [60, 180] */
+
   --background: oklch(0.98 0.005 var(--h));
   --foreground: oklch(0.2 0.04 var(--h));
 
@@ -38,7 +41,8 @@
   --popover-foreground: oklch(0.92 0 var(--h));
 
   /* bg-emerald-500 :  oklch(69.6% 0.17 162.48) */
-  --primary: oklch(0.69 0.17 var(--h)); /* Rich Brand Blue */
+  --primary: oklch(0.69 0.17 var(--h));
+  /* Rich Brand Blue */
   --primary-foreground: oklch(0.99 0 0);
 
   --muted: oklch(0.96 0.01 var(--h));
@@ -46,14 +50,19 @@
 
   --border: oklch(0.9 0.02 var(--h));
   --accent: oklch(0.94 0.03 var(--h));
+
+  /* A strong red for danger states */
+  --danger: oklch(0.50 0.23 20);
+  --danger-foreground: oklch(55.331% 0.20927 29.686);
 }
 
 .dark {
   /* --- GEMINI DARK MODE (Deep Charcoal/Blue) --- */
-  
+
   /* Background: Deepest blue-tinted gray (The "Black" feel) */
-  --background: oklch(0.12 0.015 var(--h)); 
-  --foreground: oklch(0.92 0.01 var(--h)); /* Soft white text to reduce eye strain */
+  --background: oklch(0.12 0.015 var(--h));
+  --foreground: oklch(0.92 0.01 var(--h));
+  /* Soft white text to reduce eye strain */
 
   /* Card: Slightly lighter than background to create 'layers' */
   --card: oklch(0.16 0.015 var(--h));
@@ -64,8 +73,9 @@
   --popover-foreground: oklch(0.92 0.01 var(--h));
 
   /* Primary: Brighter Blue for Dark Mode */
-  --primary: oklch(0.72 0.15 var(--h)); 
-  --primary-foreground: oklch(0.1 0.05 var(--h)); /* Dark text on bright button */
+  --primary: oklch(0.72 0.15 var(--h));
+  --primary-foreground: oklch(0.1 0.05 var(--h));
+  /* Dark text on bright button */
 
   /* Muted elements (Search bars, inactive tabs) */
   --muted: oklch(0.22 0.02 var(--h));
@@ -73,7 +83,10 @@
 
   /* Subtle Borders */
   --border: oklch(0.26 0.02 var(--h));
-  
+
   /* Hover states / Accents */
   --accent: oklch(0.28 0.03 var(--h));
+
+  --danger: oklch(57.7% 0.245 27.325);
+  --danger-foreground: oklch(0.98 0.02 20);
 }
