@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import StoreProvider from "./StoreProvider";
 import { Toaster } from "react-hot-toast"
+import { SocketProvider } from "@/context/SocketProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,18 +33,20 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <StoreProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-          >
+          <SocketProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+            >
 
-            {/* <Navbar /> */}
-            <TooltipProvider>
-              {children}
-              <Toaster />
-            </TooltipProvider>
-          </ThemeProvider>
+              {/* <Navbar /> */}
+              <TooltipProvider>
+                {children}
+                <Toaster />
+              </TooltipProvider>
+            </ThemeProvider>
+          </SocketProvider>
         </StoreProvider>
       </body>
     </html >

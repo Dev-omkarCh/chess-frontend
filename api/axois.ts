@@ -56,6 +56,10 @@ apiClient.interceptors.response.use(
                 );
 
                 processQueue(null);
+
+                isRefreshing = false;
+                originalRequest._retry = false;
+
                 return apiClient(originalRequest);
             } catch (refreshError) {
                 processQueue(refreshError, null);
@@ -64,6 +68,7 @@ apiClient.interceptors.response.use(
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;
+                originalRequest._retry = false;
             }
         }
 

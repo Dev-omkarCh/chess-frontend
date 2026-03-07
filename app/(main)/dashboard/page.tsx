@@ -9,6 +9,8 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useRouter } from 'next/navigation';
 import { RootState } from '@/lib/store';
 import { useSelector } from 'react-redux';
+import { useLogout } from '@/hooks/useLogout';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function ResponsiveChessDashboard() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -16,6 +18,8 @@ export default function ResponsiveChessDashboard() {
     const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
     const router = useRouter();
     const user = useSelector((state: RootState) => state.auth.user);
+    const { isLoading, handleLogout, error } = useLogout();
+    // const isLoading = true;
 
     return (
         <div className="flex h-screen bg-background text-foreground transition-colors duration-500 overflow-hidden">
@@ -99,9 +103,9 @@ export default function ResponsiveChessDashboard() {
                                         <p className="text-muted-foreground text-xs truncate">{user?.email}</p>
                                     </div>
                                     <DropdownItem icon={<User size={16} />} label="Profile" path="/profile" />
-                                    <DropdownItem icon={<BarChart3 size={16} />} label="Performance" />
+                                    <DropdownItem icon={<BarChart3 size={16} />} label="Performance" path='/performance' />
                                     <div className="h-px bg-border my-2" />
-                                    <DropdownItem icon={<LogOut size={16} />} label="Logout" variant="danger" />
+                                    <DropdownItem icon={<LogOut size={16} />} label="Logout" variant="danger" logout={handleLogout} isLoading={isLoading} />
                                 </div>
                             )}
                         </div>
@@ -197,13 +201,33 @@ function GameCard({ icon, title, desc, primary = false, onClick }: GameCardProps
     );
 }
 
-function DropdownItem({ icon, label, variant, path }: any) {
+interface DropdownItemProps {
+    icon: any,
+    label: string,
+    variant?: 'normal' | 'danger',
+    path?: string,
+    logout?: () => void,
+    isLoading?: boolean
+}
+
+function DropdownItem({ icon, label, variant, path, logout, isLoading }: DropdownItemProps) {
     const router = useRouter();
     return (
         <button
-            onClick={() => path && router.push(path)}
-            className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-sm transition-colors ${variant === 'danger' ? 'text-red-500 hover:bg-red-500/80 hover:text-white' : 'hover:bg-accent'}`}>
-            {icon} {label}
+            onClick={() => {
+                if (path) router.push(path);
+                if (logout) logout();
+            }}
+            disabled={isLoading}
+            className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-sm transition-colors 
+                ${variant === 'danger' ? 'text-danger hover:bg-danger' : 'hover:bg-accent'}
+                ${isLoading ? 'cursor-not-allowed opacity-70 bg-danger/50 hover:bg-danger/50 hover:text-danger-foreground flex justify-center items-center' : 'hover:text-danger-foreground'}`
+            }>
+            {isLoading ? (
+                <LoadingSpinner />
+            ) : (<>
+                {icon} {label}
+            </>)}
         </button>
     );
 }

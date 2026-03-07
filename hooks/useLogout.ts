@@ -18,7 +18,6 @@ export const useLogout = () => {
         try {
             const result = await logoutUser();
             dispatch(clearAuth());
-            router.push("/login");
             return result;
         } catch (err: any) {
             console.log("Logout Failed : ", err);
@@ -26,6 +25,7 @@ export const useLogout = () => {
             setError(err.response?.data?.message || "Logout failed");
         } finally {
             setIsLoading(false);
+            router.push("/login");
         }
     };
 
