@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Define your route categories
-const publicRoutes = ['/login', '/signup', '/'];
+const publicRoutes = ['/login', '/signup', '/', '/lobby', "/assets/*"];
 const authRoutes = ['/login', '/signup'];
 
 export function proxy(request: NextRequest) {
@@ -14,6 +14,9 @@ export function proxy(request: NextRequest) {
 
     const isAuthRoute = authRoutes.includes(pathname);
     const isPublicRoute = publicRoutes.includes(pathname);
+
+    // Allow assets to pass through without checks for performance
+    if (pathname.startsWith('/assets/')) return NextResponse.next();
 
     // Redirect Unauthenticated users to Login
     if (!token && !isPublicRoute) {
