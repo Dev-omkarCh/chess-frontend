@@ -6,7 +6,6 @@ import {
     Trophy,
     Users,
     Clock,
-    Swords,
     Search,
     Settings,
     Plus,
@@ -17,16 +16,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
-import Navbar from "@/components/Navbar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { useGameSettings } from "@/hooks/useGameSettings";
 import BoardSettingsDialog from "@/components/lobby/SettingsDialog";
 
 const ChessLobby = () => {
-    const [searchTerm, setSearchTerm] = React.useState("");
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
     const handleOpenSettings = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -34,14 +27,6 @@ const ChessLobby = () => {
     }
 
     const { settings, setSettings, saveSettings } = useGameSettings();
-    const [tempSettings, setTempSettings] = useState(settings);
-
-    const BOARD_COLORS = [
-        { name: 'Gemini Blue', value: 'oklch(0.12 0.015 180)' },
-        { name: 'Classic Green', value: 'oklch(0.6 0.1 150)' },
-        { name: 'Obsidian', value: 'oklch(0.2 0 0)' },
-        { name: 'Sand', value: 'oklch(0.9 0.05 80)' }
-    ];
 
     return (
         // Background Chess Pattern: and transition for theme switch
@@ -215,7 +200,7 @@ const ChessLobby = () => {
             </div>
 
             {/* Settings Dailog */}
-            <BoardSettingsDialog onClose={() => setIsSettingsOpen(false)} />
+            <BoardSettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
         </div>
     );
 };

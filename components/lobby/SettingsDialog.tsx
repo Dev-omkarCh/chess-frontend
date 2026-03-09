@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import { getPieceSet } from "@/lib/pieces-registry";
 
 // --- DATA ---
@@ -20,12 +19,6 @@ type PieceSet = {
     label: string;
     preview: string; // emoji stand-in; swap for <Image> if you have real assets
     available: boolean;
-};
-
-type BgOption = {
-    id: string;
-    label: string;
-    class: string;
 };
 
 type Preset = {
@@ -205,8 +198,10 @@ type Tab = "Boards" | "Pieces" | "Presets";
 
 // --- MAIN DIALOG ---
 export default function BoardSettingsDialog({
+    isOpen,
     onClose,
 }: {
+    isOpen: boolean;
     onClose?: () => void;
 }) {
     const [activeTab, setActiveTab] = useState<Tab>("Boards");
@@ -243,6 +238,8 @@ export default function BoardSettingsDialog({
     };
 
     const TABS: Tab[] = ["Boards", "Pieces", "Presets"];
+
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -294,7 +291,7 @@ export default function BoardSettingsDialog({
                             <div
                                 className="grid gap-2 overflow-y-auto pr-1"
                                 style={{
-                                    gridTemplateColumns: "repeat(5, 56px)",
+                                    gridTemplateColumns: "repeat(auto-fill, minmax(56px, 1fr))",
                                     maxHeight: 320,
                                 }}
                             >
