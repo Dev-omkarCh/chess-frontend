@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { getPieceSet } from "@/lib/pieces-registry";
+import { BoardSettings, getPieceSet, pieceStyleType, BoardTheme as BoardThemeType } from "@/lib/pieces-registry";
 
 // --- DATA ---
 
@@ -205,9 +205,17 @@ type Tab = "Boards" | "Pieces" | "Presets";
 
 // --- MAIN DIALOG ---
 export default function BoardSettingsDialog({
+    open,
     onClose,
+    // setPieceStyle,
+    // setBoardTheme,
+    setBoardTheme,
 }: {
+    open?: boolean
     onClose?: () => void;
+    // setPieceStyle?: Dispatch<SetStateAction<pieceStyleType>>;
+    // setBoardTheme?: Dispatch<SetStateAction<>>;
+    setBoardTheme: (theme: BoardThemeType) => void
 }) {
     const [activeTab, setActiveTab] = useState<Tab>("Boards");
     const [selectedBoard, setSelectedBoard] = useState("wood");
@@ -225,6 +233,7 @@ export default function BoardSettingsDialog({
     const handleSave = () => {
         setSelectedBoard(pendingBoard);
         setSelectedPieces(pendingPieces);
+        // setBoardTheme(selectedBoard);
         setSelectedBg(pendingBg);
         onClose?.();
     };
@@ -243,6 +252,10 @@ export default function BoardSettingsDialog({
     };
 
     const TABS: Tab[] = ["Boards", "Pieces", "Presets"];
+
+    if (!open) {
+        return null
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
