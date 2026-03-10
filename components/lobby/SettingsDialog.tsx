@@ -22,12 +22,6 @@ type PieceSet = {
     available: boolean;
 };
 
-type BgOption = {
-    id: string;
-    label: string;
-    class: string;
-};
-
 type Preset = {
     id: string;
     label: string;
@@ -307,7 +301,7 @@ export default function BoardSettingsDialog({
                             <div
                                 className="grid gap-2 overflow-y-auto pr-1"
                                 style={{
-                                    gridTemplateColumns: "repeat(5, 56px)",
+                                    gridTemplateColumns: "repeat(auto-fill, minmax(56px, 1fr))",
                                     maxHeight: 320,
                                 }}
                             >
