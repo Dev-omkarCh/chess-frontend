@@ -170,7 +170,7 @@ function BoardSwatch({
             onClick={onClick}
             className={cn(
                 "relative rounded overflow-hidden transition-all duration-150",
-                "hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary h-fit",
                 selected && "ring-2 ring-primary ring-offset-1 ring-offset-card"
             )}
             style={{ width: 56, height: 56 }}
@@ -201,15 +201,13 @@ type Tab = "Boards" | "Pieces" | "Presets";
 export default function BoardSettingsDialog({
     open,
     onClose,
-    // setPieceStyle,
-    // setBoardTheme,
     setBoardTheme,
+    setPieceStyle,
 }: {
     open?: boolean
     onClose?: () => void;
-    // setPieceStyle?: Dispatch<SetStateAction<pieceStyleType>>;
-    // setBoardTheme?: Dispatch<SetStateAction<>>;
-    setBoardTheme: (theme: BoardThemeType) => void
+    setBoardTheme?: (theme: BoardThemeType) => void
+    setPieceStyle?: (style: pieceStyleType) => void
 }) {
     const [activeTab, setActiveTab] = useState<Tab>("Boards");
     const [selectedBoard, setSelectedBoard] = useState("wood");
@@ -227,8 +225,11 @@ export default function BoardSettingsDialog({
     const handleSave = () => {
         setSelectedBoard(pendingBoard);
         setSelectedPieces(pendingPieces);
-        // setBoardTheme(selectedBoard);
         setSelectedBg(pendingBg);
+
+        // new
+        setBoardTheme?.(pendingBoard);
+        setPieceStyle?.(pendingPieces);
         onClose?.();
     };
 
@@ -299,10 +300,10 @@ export default function BoardSettingsDialog({
                     <div className="flex-1 min-w-0">
                         {activeTab === "Boards" && (
                             <div
-                                className="grid gap-2 overflow-y-auto pr-1"
+                                className="grid gap-2 pr-1"
                                 style={{
                                     gridTemplateColumns: "repeat(auto-fill, minmax(56px, 1fr))",
-                                    maxHeight: 320,
+                                    maxHeight: "fit-content",
                                 }}
                             >
                                 {BOARD_THEMES.map((theme) => (

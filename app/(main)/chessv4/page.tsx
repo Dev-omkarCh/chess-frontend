@@ -496,6 +496,11 @@ export default function ChessPage() {
     const [gameResult, setGameResult] = useState("");
     const [animSq, setAnimSq] = useState<Square | null>(null);
 
+    // Arrows (right-click drag, chess.com style)
+    const [arrows, setArrows] = useState<{ from: Square; to: Square }[]>([]);
+    const arrowDragRef = useRef<{ from: Square } | null>(null);
+    const boardRef = useRef<HTMLDivElement>(null);
+
     // Timers
     const [initTime, setInitTime] = useState(600);
     const [wTime, setWTime] = useState(600);
@@ -604,6 +609,7 @@ export default function ChessPage() {
 
     // Square click
     const handleClick = useCallback((sq: Square) => {
+        setArrows([]); // left-click clears annotations
         if (isViewing) { returnLive(); return; }
         if (isOver) return;
         const piece = game.get(sq);
@@ -638,6 +644,7 @@ export default function ChessPage() {
             setGame(gc); setLastMove({ from, to });
             setSelected(null); setLegalSquares([]);
             setAnimSq(to); setTimeout(() => setAnimSq(null), 350);
+            setArrows([]);
             if (r.captured) {
                 setCaptured(prev => ({ ...prev, [r.color]: [...prev[r.color as "w" | "b"], r.captured as PieceSymbol] }));
                 beep("capture");
@@ -686,6 +693,114 @@ export default function ChessPage() {
 
     const handleSetPieceStyle = (style: pieceStyleType) => {
         setPieceStyle(style);
+    };
+
+    // ── Arrow helpers ────────────────────────────────────────────────────────
+    /** Convert a client-space point to a board square, accounting for flip */
+    const pointToSquare = useCallback((clientX: number, clientY: number): Square | null => {
+        const el = boardRef.current;
+        if (!el) return null;
+        const rect = el.getBoundingClientRect();
+        const xFrac = (clientX - rect.left) / rect.width;
+        const yFrac = (clientY - rect.top) / rect.height;
+        if (xFrac < 0 || xFrac > 1 || yFrac < 0 || yFrac > 1) return null;
+        const fileIdx = boardFlipped ? 7 - Math.floor(xFrac * 8) : Math.floor(xFrac * 8);
+        const rankIdx = boardFlipped ? Math.floor(yFrac * 8) : 7 - Math.floor(yFrac * 8);
+        return `${FILES[fileIdx]}${rankIdx + 1}` as Square;
+    }, [boardFlipped]);
+
+    const handleBoardMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.button !== 2) return; // only right-click
+        e.preventDefault();
+        const sq = pointToSquare(e.clientX, e.clientY);
+        if (sq) arrowDragRef.current = { from: sq };
+    }, [pointToSquare]);
+
+    const handleBoardMouseUp = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.button !== 2) return;
+        e.preventDefault();
+        if (!arrowDragRef.current) return;
+        const from = arrowDragRef.current.from;
+        arrowDragRef.current = null;
+        const to = pointToSquare(e.clientX, e.clientY);
+        if (!to) return;
+        if (from === to) {
+            // single-square right-click: clear all arrows
+            setArrows([]);
+            return;
+        }
+        setArrows(prev => {
+            // toggle: if identical arrow exists remove it, otherwise add
+            const exists = prev.findIndex(a => a.from === from && a.to === to);
+            if (exists !== -1) return prev.filter((_, i) => i !== exists);
+            return [...prev, { from, to }];
+        });
+    }, [pointToSquare]);
+
+    /** Get SVG coords for the center of a square (0-800 viewBox) */
+    const sqToXY = useCallback((sq: Square): [number, number] => {
+        const file = sq[0]; const rank = parseInt(sq[1]);
+        const fileIdx = FILES.indexOf(file);
+        const rankIdx = rank - 1; // 0=rank1 .. 7=rank8
+        const col = boardFlipped ? 7 - fileIdx : fileIdx;
+        const row = boardFlipped ? rankIdx : 7 - rankIdx;
+        return [col * 100 + 50, row * 100 + 50];
+    }, [boardFlipped]);
+
+    const renderArrows = () => {
+        if (arrows.length === 0) return null;
+        const SHAFT_W = 18;
+        const HEAD_W = 42;
+        const HEAD_LEN = 52;
+        return (
+            <svg
+                viewBox="0 0 800 800"
+                className="absolute inset-0 w-full h-full pointer-events-none z-40"
+                style={{ borderRadius: "inherit" }}
+            >
+                <defs>
+                    <marker
+                        id="arrowhead"
+                        markerWidth={HEAD_W / SHAFT_W * 1.2}
+                        markerHeight={HEAD_W / SHAFT_W * 1.2}
+                        refX={HEAD_W / SHAFT_W * 1.2 - 0.3}
+                        refY={(HEAD_W / SHAFT_W * 1.2) / 2}
+                        orient="auto"
+                    >
+                        <polygon
+                            points={`0 0, ${HEAD_W / SHAFT_W * 1.2} ${(HEAD_W / SHAFT_W * 1.2) / 2}, 0 ${HEAD_W / SHAFT_W * 1.2}`}
+                            fill="rgba(255, 200, 0, 0.92)"
+                        />
+                    </marker>
+                </defs>
+                {arrows.map((arrow, i) => {
+                    const [x1, y1] = sqToXY(arrow.from);
+                    const [x2, y2] = sqToXY(arrow.to);
+                    const dx = x2 - x1, dy = y2 - y1;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    if (len < 1) return null;
+                    const ux = dx / len, uy = dy / len;
+                    // Shorten the line so arrowhead sits nicely within destination square
+                    const shortenBy = HEAD_LEN * 0.7;
+                    const ex = x2 - ux * shortenBy;
+                    const ey = y2 - uy * shortenBy;
+                    // Start slightly away from center of from-square
+                    const sx = x1 + ux * 28;
+                    const sy = y1 + uy * 28;
+                    return (
+                        <line
+                            key={i}
+                            x1={sx} y1={sy} x2={ex} y2={ey}
+                            stroke="rgba(255, 200, 0, 0.88)"
+                            strokeWidth={SHAFT_W}
+                            strokeLinecap="round"
+                            markerEnd="url(#arrowhead)"
+                            style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.45))" }}
+                        />
+                    );
+                })}
+            </svg>
+        );
     };
 
     // Board render
@@ -886,13 +1001,19 @@ export default function ChessPage() {
 
                             {/* Board */}
                             <div className="relative w-full">
-                                <div className={cn(
-                                    "w-full grid grid-cols-8 rounded-2xl overflow-hidden border-4 shadow-2xl transition-all",
-                                    isViewing ? "border-blue-500/60 shadow-blue-500/10"
-                                        : gameStatus === "check" ? "border-orange-500/50 shadow-orange-500/10"
-                                            : "border-border shadow-black/20"
-                                )} style={{ aspectRatio: "1/1" }}>
+                                <div
+                                    ref={boardRef}
+                                    onMouseDown={handleBoardMouseDown}
+                                    onMouseUp={handleBoardMouseUp}
+                                    onContextMenu={e => e.preventDefault()}
+                                    className={cn(
+                                        "relative w-full grid grid-cols-8 rounded-2xl overflow-hidden border-4 shadow-2xl transition-all",
+                                        isViewing ? "border-blue-500/60 shadow-blue-500/10"
+                                            : gameStatus === "check" ? "border-orange-500/50 shadow-orange-500/10"
+                                                : "border-border shadow-black/20"
+                                    )} style={{ aspectRatio: "1/1" }}>
                                     {renderBoard()}
+                                    {renderArrows()}
                                 </div>
 
                                 {/* Promotion overlay */}

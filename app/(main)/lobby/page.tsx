@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useGameSettings } from "@/hooks/useGameSettings";
 import BoardSettingsDialog from "@/components/lobby/SettingsDialog";
+import { useRouter } from "next/navigation";
 
 const ChessLobby = () => {
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
@@ -27,6 +28,7 @@ const ChessLobby = () => {
     }
 
     const { settings, setSettings, saveSettings } = useGameSettings();
+    const router = useRouter();
 
     return (
         // Background Chess Pattern: and transition for theme switch
@@ -94,7 +96,7 @@ const ChessLobby = () => {
                                 </CardHeader>
                                 <CardContent className="relative z-10">
                                     <p className="text-sm text-white/50 mb-6 max-w-sm">Jump into a classic rapid game against a player close to your rating.</p>
-                                    <Button className="w-full bg-primary text-white/80 hover:opacity-90 flex items-center gap-2 group">
+                                    <Button className="w-full bg-primary text-white/80 hover:opacity-90 flex items-center gap-2 group" onClick={() => router.push("/chessv3")}>
                                         Play Now
                                         <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                                     </Button>
@@ -200,7 +202,7 @@ const ChessLobby = () => {
             </div>
 
             {/* Settings Dailog */}
-            <BoardSettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+            <BoardSettingsDialog open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
         </div>
     );
 };

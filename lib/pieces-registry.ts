@@ -46,7 +46,7 @@ export const PIECE_REGISTRY: Record<string, PieceSetData> = {
 
 type peiceType = "k" | "q" | "r" | "n" | "b" | "p" | "K" | "Q" | "R" | "B" | "N" | "P" | string
 type pieceColor = "w" | "b"
-export type pieceStyleType = "standard" | "classic" | "neo" | "space"
+export type pieceStyleType = "standard" | "classic" | "neo" | "space" | string
 
 export const getPieceStyle = (piece: peiceType, color: pieceColor, pieceStyle: pieceStyleType) => {
     switch (color) {
@@ -154,7 +154,7 @@ export type BoardTheme = "green" | "wood" | "blue" | "tan" |
     "classic" | "slate" | "marble" | "walnut" | "linen" | "orange" |
     "emerald" | "steel" | "purple" | "gray" | "coral" | "sand" | "midnight" |
     "forest" | "wine" | "bluewhite" | "pink" | "crimson" | "birch" |
-    "silver" | "charcoal";
+    "silver" | "charcoal" | string;
 
 export const getColor = (id: BoardTheme) => {
     switch (id) {
@@ -181,6 +181,57 @@ export const getColor = (id: BoardTheme) => {
 
         case "walnut":
             return { id: "walnut", label: "Walnut", light: "#D4A96A", dark: "#7B4D2E" }
+
+        case "linen":
+            return { id: "linen", label: "Linen", light: "#F0EAD6", dark: "#A0785A" }
+
+        case "orange":
+            return { id: "orange", label: "Orange", light: "#F4A261", dark: "#E76F51" }
+
+        case "emerald":
+            return { id: "emerald", label: "Emerald", light: "#A8D5A2", dark: "#2D6A4F" }
+
+        case "steel":
+            return { id: "steel", label: "Steel", light: "#D0D0D0", dark: "#707070" }
+
+        case "purple":
+            return { id: "purple", label: "Purple", light: "#D8C7F0", dark: "#7B5EA7" }
+
+        case "gray":
+            return { id: "gray", label: "Gray", light: "#CCCCCC", dark: "#888888" }
+
+        case "coral":
+            return { id: "coral", label: "Coral", light: "#FFB5B5", dark: "#C0392B" }
+
+        case "sand":
+            return { id: "sand", label: "Sand", light: "#F5DEB3", dark: "#C8A45A" }
+
+        case "midnight":
+            return { id: "midnight", label: "Midnight", light: "#B0C4DE", dark: "#1C3A5E" }
+
+        case "forest":
+            return { id: "forest", label: "Forest", light: "#C8DEB0", dark: "#2D5016" }
+
+        case "wine":
+            return { id: "wine", label: "Wine", light: "#D4A0A0", dark: "#722F37" }
+
+        case "bluewhite":
+            return { id: "bluewhite", label: "Blue-White", light: "#FFFFFF", dark: "#4169E1" }
+
+        case "pink":
+            return { id: "pink", label: "Pink", light: "#FFB6C1", dark: "#FF69B4" }
+
+        case "crimson":
+            return { id: "crimson", label: "Crimson", light: "#F5A0A0", dark: "#8B0000" }
+
+        case "birch":
+            return { id: "birch", label: "Birch", light: "#E8D8C0", dark: "#C8A870" }
+
+        case "silver":
+            return { id: "silver", label: "Silver", light: "#E8E8E8", dark: "#A8A8A8" }
+
+        case "charcoal":
+            return { id: "charcoal", label: "Charcoal", light: "#C0C0C0", dark: "#404040" }
 
         default:
             return { id: "walnut", label: "Walnut", light: "#D4A96A", dark: "#7B4D2E" }

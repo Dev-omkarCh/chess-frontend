@@ -496,6 +496,11 @@ export default function ChessPage() {
     const [gameResult, setGameResult] = useState("");
     const [animSq, setAnimSq] = useState<Square | null>(null);
 
+    // Arrows (right-click drag, chess.com style)
+    const [arrows, setArrows] = useState<{ from: Square; to: Square }[]>([]);
+    const arrowDragRef = useRef<{ from: Square } | null>(null);
+    const boardRef = useRef<HTMLDivElement>(null);
+
     // Timers
     const [initTime, setInitTime] = useState(600);
     const [wTime, setWTime] = useState(600);
@@ -604,6 +609,7 @@ export default function ChessPage() {
 
     // Square click
     const handleClick = useCallback((sq: Square) => {
+        setArrows([]); // left-click clears annotations
         if (isViewing) { returnLive(); return; }
         if (isOver) return;
         const piece = game.get(sq);
@@ -638,6 +644,7 @@ export default function ChessPage() {
             setGame(gc); setLastMove({ from, to });
             setSelected(null); setLegalSquares([]);
             setAnimSq(to); setTimeout(() => setAnimSq(null), 350);
+            setArrows([]);
             if (r.captured) {
                 setCaptured(prev => ({ ...prev, [r.color]: [...prev[r.color as "w" | "b"], r.captured as PieceSymbol] }));
                 beep("capture");
@@ -686,6 +693,203 @@ export default function ChessPage() {
 
     const handleSetPieceStyle = (style: pieceStyleType) => {
         setPieceStyle(style);
+    };
+
+    // ── Arrow helpers ────────────────────────────────────────────────────────
+    /** Convert a client-space point to a board square, accounting for flip */
+    const pointToSquare = useCallback((clientX: number, clientY: number): Square | null => {
+        const el = boardRef.current;
+        if (!el) return null;
+        const rect = el.getBoundingClientRect();
+        const xFrac = (clientX - rect.left) / rect.width;
+        const yFrac = (clientY - rect.top) / rect.height;
+        if (xFrac < 0 || xFrac > 1 || yFrac < 0 || yFrac > 1) return null;
+        const fileIdx = boardFlipped ? 7 - Math.floor(xFrac * 8) : Math.floor(xFrac * 8);
+        const rankIdx = boardFlipped ? Math.floor(yFrac * 8) : 7 - Math.floor(yFrac * 8);
+        return `${FILES[fileIdx]}${rankIdx + 1}` as Square;
+    }, [boardFlipped]);
+
+    const handleBoardMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.button !== 2) return; // only right-click
+        e.preventDefault();
+        const sq = pointToSquare(e.clientX, e.clientY);
+        if (sq) arrowDragRef.current = { from: sq };
+    }, [pointToSquare]);
+
+    const handleBoardMouseUp = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.button !== 2) return;
+        e.preventDefault();
+        if (!arrowDragRef.current) return;
+        const from = arrowDragRef.current.from;
+        arrowDragRef.current = null;
+        const to = pointToSquare(e.clientX, e.clientY);
+        if (!to) return;
+        if (from === to) {
+            // single-square right-click: clear all arrows
+            setArrows([]);
+            return;
+        }
+        setArrows(prev => {
+            // toggle: if identical arrow exists remove it, otherwise add
+            const exists = prev.findIndex(a => a.from === from && a.to === to);
+            if (exists !== -1) return prev.filter((_, i) => i !== exists);
+            return [...prev, { from, to }];
+        });
+    }, [pointToSquare]);
+
+    /** Get SVG coords for the center of a square (0-800 viewBox) */
+    const sqToXY = useCallback((sq: Square): [number, number] => {
+        const file = sq[0]; const rank = parseInt(sq[1]);
+        const fileIdx = FILES.indexOf(file);
+        const rankIdx = rank - 1; // 0=rank1 .. 7=rank8
+        const col = boardFlipped ? 7 - fileIdx : fileIdx;
+        const row = boardFlipped ? rankIdx : 7 - rankIdx;
+        return [col * 100 + 50, row * 100 + 50];
+    }, [boardFlipped]);
+
+    const renderArrows = () => {
+        if (arrows.length === 0) return null;
+
+        // Visual constants (viewBox is 800×800, each square = 100 units)
+        const SW = 15;          // shaft half-width
+        const HW = 34;          // arrowhead half-width at base
+        const HL = 46;          // arrowhead length (tip depth)
+        const FILL = "rgba(255,199,0,0.88)";
+        const SHADOW = "drop-shadow(0 2px 8px rgba(0,0,0,0.55))";
+
+        /** Build a sharp chevron arrowhead polygon pointing in direction (ux,uy),
+         *  with tip at (tx,ty). Returns SVG points string. */
+        const arrowHeadPoints = (tx: number, ty: number, ux: number, uy: number): string => {
+            // perpendicular
+            const px = -uy, py = ux;
+            // base centre (behind tip by HL)
+            const bx = tx - ux * HL, by = ty - uy * HL;
+            // base corners
+            const l = `${bx + px * HW},${by + py * HW}`;
+            const r = `${bx - px * HW},${by - py * HW}`;
+            // mid-notch (creates the sharp chevron indent)
+            const mx = tx - ux * HL * 0.42, my = ty - uy * HL * 0.42;
+            return `${tx},${ty} ${l} ${mx},${my} ${r}`;
+        };
+
+        /** Build shaft rectangle between two points as a polygon (for crisp edges) */
+        const shaftPoints = (sx: number, sy: number, ex: number, ey: number, ux: number, uy: number): string => {
+            const px = -uy, py = ux;
+            return [
+                `${sx + px * SW},${sy + py * SW}`,
+                `${sx - px * SW},${sy - py * SW}`,
+                `${ex - px * SW},${ey - py * SW}`,
+                `${ex + px * SW},${ey + py * SW}`,
+            ].join(" ");
+        };
+
+        /** Detect knight move: exactly (1,2) or (2,1) in file/rank deltas */
+        const isKnightMove = (from: Square, to: Square): boolean => {
+            const df = Math.abs(FILES.indexOf(to[0]) - FILES.indexOf(from[0]));
+            const dr = Math.abs(parseInt(to[1]) - parseInt(from[1]));
+            return (df === 1 && dr === 2) || (df === 2 && dr === 1);
+        };
+
+        return (
+            <svg
+                viewBox="0 0 800 800"
+                className="absolute inset-0 w-full h-full pointer-events-none z-40"
+                style={{ borderRadius: "inherit" }}
+            >
+                {arrows.map((arrow, i) => {
+                    const [x1, y1] = sqToXY(arrow.from);
+                    const [x2, y2] = sqToXY(arrow.to);
+
+                    if (isKnightMove(arrow.from, arrow.to)) {
+                        // ── L-shaped knight arrow ───────────────────────────
+                        // Determine the elbow: move horizontally first if df=2, else vertically
+                        const df = FILES.indexOf(arrow.to[0]) - FILES.indexOf(arrow.from[0]);
+                        const dr = parseInt(arrow.to[1]) - parseInt(arrow.from[1]);
+                        const absDf = Math.abs(df), absDr = Math.abs(dr);
+
+                        // Elbow point: corner of the L
+                        let ex: number, ey: number;
+                        if (absDf === 2) {
+                            // go horizontal first, then vertical
+                            ex = x2; ey = y1;
+                        } else {
+                            // go vertical first, then horizontal
+                            ex = x1; ey = y2;
+                        }
+
+                        // Segment 1: from → elbow
+                        const dx1 = ex - x1, dy1 = ey - y1;
+                        const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+                        const ux1 = dx1 / len1, uy1 = dy1 / len1;
+
+                        // Segment 2: elbow → to
+                        const dx2 = x2 - ex, dy2 = y2 - ey;
+                        const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+                        const ux2 = dx2 / len2, uy2 = dy2 / len2;
+
+                        // Shaft start (pull back from origin centre)
+                        const s1x = x1 + ux1 * 28, s1y = y1 + uy1 * 28;
+                        // Elbow: end of seg1 / start of seg2 — round the corner slightly
+                        const e1x = ex - ux1 * SW, e1y = ey - uy1 * SW;
+                        const e2x = ex + ux2 * SW, e2y = ey + uy2 * SW;
+                        // Arrowhead tip at destination, shaft ends before head
+                        const tipX = x2, tipY = y2;
+                        const shaftEndX = tipX - ux2 * (HL - 4);
+                        const shaftEndY = tipY - uy2 * (HL - 4);
+
+                        return (
+                            <g key={i} style={{ filter: SHADOW }}>
+                                {/* Segment 1 shaft */}
+                                <polygon
+                                    points={shaftPoints(s1x, s1y, e1x, e1y, ux1, uy1)}
+                                    fill={FILL}
+                                />
+                                {/* Corner fillet square to fill gap */}
+                                <rect
+                                    x={ex - SW} y={ey - SW}
+                                    width={SW * 2} height={SW * 2}
+                                    fill={FILL}
+                                />
+                                {/* Segment 2 shaft */}
+                                <polygon
+                                    points={shaftPoints(e2x, e2y, shaftEndX, shaftEndY, ux2, uy2)}
+                                    fill={FILL}
+                                />
+                                {/* Arrowhead */}
+                                <polygon
+                                    points={arrowHeadPoints(tipX, tipY, ux2, uy2)}
+                                    fill={FILL}
+                                />
+                            </g>
+                        );
+                    }
+
+                    // ── Straight arrow ───────────────────────────────────────
+                    const dx = x2 - x1, dy = y2 - y1;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    if (len < 1) return null;
+                    const ux = dx / len, uy = dy / len;
+
+                    const sx = x1 + ux * 28, sy = y1 + uy * 28;
+                    const tipX = x2, tipY = y2;
+                    const shaftEndX = tipX - ux * (HL - 4);
+                    const shaftEndY = tipY - uy * (HL - 4);
+
+                    return (
+                        <g key={i} style={{ filter: SHADOW }}>
+                            <polygon
+                                points={shaftPoints(sx, sy, shaftEndX, shaftEndY, ux, uy)}
+                                fill={FILL}
+                            />
+                            <polygon
+                                points={arrowHeadPoints(tipX, tipY, ux, uy)}
+                                fill={FILL}
+                            />
+                        </g>
+                    );
+                })}
+            </svg>
+        );
     };
 
     // Board render
@@ -886,13 +1090,19 @@ export default function ChessPage() {
 
                             {/* Board */}
                             <div className="relative w-full">
-                                <div className={cn(
-                                    "w-full grid grid-cols-8 rounded-2xl overflow-hidden border-4 shadow-2xl transition-all",
-                                    isViewing ? "border-blue-500/60 shadow-blue-500/10"
-                                        : gameStatus === "check" ? "border-orange-500/50 shadow-orange-500/10"
-                                            : "border-border shadow-black/20"
-                                )} style={{ aspectRatio: "1/1" }}>
+                                <div
+                                    ref={boardRef}
+                                    onMouseDown={handleBoardMouseDown}
+                                    onMouseUp={handleBoardMouseUp}
+                                    onContextMenu={e => e.preventDefault()}
+                                    className={cn(
+                                        "relative w-full grid grid-cols-8 rounded-2xl overflow-hidden border-4 shadow-2xl transition-all",
+                                        isViewing ? "border-blue-500/60 shadow-blue-500/10"
+                                            : gameStatus === "check" ? "border-orange-500/50 shadow-orange-500/10"
+                                                : "border-border shadow-black/20"
+                                    )} style={{ aspectRatio: "1/1" }}>
                                     {renderBoard()}
+                                    {renderArrows()}
                                 </div>
 
                                 {/* Promotion overlay */}
