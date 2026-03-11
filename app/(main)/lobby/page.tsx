@@ -96,7 +96,7 @@ const ChessLobby = () => {
                                 </CardHeader>
                                 <CardContent className="relative z-10">
                                     <p className="text-sm text-white/50 mb-6 max-w-sm">Jump into a classic rapid game against a player close to your rating.</p>
-                                    <Button className="w-full bg-primary text-white/80 hover:opacity-90 flex items-center gap-2 group" onClick={() => router.push("/chessv3")}>
+                                    <Button className="w-full bg-primary text-white/80 hover:opacity-90 flex items-center gap-2 group" onClick={() => router.push("/chessv6")}>
                                         Play Now
                                         <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                                     </Button>

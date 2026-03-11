@@ -39,7 +39,7 @@ type PromotionPiece = "q" | "r" | "b" | "n";
 
 interface TimeControl { label: string; seconds: number; desc: string; icon: React.ReactNode }
 interface MoveEntry {
-    san: string; from: Square; to: Square; piece: string;
+    san: string; from: Square | ""; to: Square | ""; piece: string;
     captured?: string; color: "w" | "b"; moveNumber: number; fen: string;
 }
 interface CapturedPieces { w: PieceSymbol[]; b: PieceSymbol[] }
@@ -481,7 +481,7 @@ export default function ChessPage() {
     const username = user?.username ?? "You";
 
     // Navigation
-    const [screen, setScreen] = useState<AppScreen>("lobby");
+    const [screen, setScreen] = useState<AppScreen>("setup");
 
     // Game
     const [game, setGame] = useState(() => new Chess());
@@ -530,7 +530,9 @@ export default function ChessPage() {
         : game;
 
     const paired: [MoveEntry, MoveEntry | null][] = [];
-    for (let i = 0; i < moves.length; i += 2) paired.push([moves[i], moves[i + 1] ?? null]);
+    for (let i = 0; i < moves.length; i += 2) {
+        paired.push([moves[i], moves[i + 1] ?? null]);
+    }
 
     // Settings
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -961,7 +963,7 @@ export default function ChessPage() {
     };
 
     // ── Screen router ────────────────────────────────────────────────────────
-    if (screen === "lobby") return <LobbyScreen onNewGame={() => setScreen("setup")} username={username} />;
+    // if (screen === "lobby") return <LobbyScreen onNewGame={() => setScreen("setup")} username={username} />;
     if (screen === "setup") return <SetupScreen onStart={startGame} onBack={() => setScreen("lobby")} />;
 
     // ── Game screen ──────────────────────────────────────────────────────────
@@ -1231,24 +1233,65 @@ export default function ChessPage() {
                 </div>
 
                 {/* ── MOBILE: move history + chat as bottom sheet tabs ── */}
-                <div className="lg:hidden flex-shrink-0 border-t border-border bg-card">
-                    {/* Mobile move history toggle + nav */}
-                    <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto">
-                        <MoveNav
+                {/* <div className="lg:hidden flex-shrink-0 border-t border-border flex-row bg-card"> */}
+                {/* Mobile move history toggle + nav */}
+                {/* <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto"> */}
+                {/* <MoveNav
                             onFirst={goFirst} onBack={goBack} onForward={goFwd}
                             onLast={goLast} onReturnLive={returnLive}
                             canBack={canBack} canForward={canFwd} isViewing={isViewing}
-                        />
-                        <div className="ml-auto flex items-center gap-1 text-xs font-mono text-muted-foreground">
+                        /> */}
+                {/* <div className="ml-auto flex items-center gap-1 text-xs font-mono text-muted-foreground">
                             {paired.slice(-3).map(([w, b], i) => (
                                 <span key={i} className="flex gap-1">
                                     <span>{w.san}</span>
                                     {b && <span>{b.san}</span>}
                                 </span>
                             ))}
-                        </div>
-                    </div>
-                </div>
+                        </div> */}
+
+                {/* Action buttons */}
+                {/* <div className="flex items-center gap-2">
+                            {isOver ? (
+                                <>
+                                    <button onClick={() => setScreen("setup")}
+                                        className="h-9 px-5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-md shadow-primary/20">
+                                        Play Again
+                                    </button>
+                                    <button onClick={() => setScreen("lobby")}
+                                        className="h-9 px-4 rounded-xl text-sm font-semibold bg-muted text-muted-foreground hover:bg-accent hover:text-foreground transition-all border border-border">
+                                        Lobby
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button onClick={() => setShowDraw(true)}
+                                                className="h-9 px-4 rounded-xl text-sm font-semibold border border-border bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-all flex items-center gap-1.5">
+                                                <FaHandshake className="text-sm" /> Draw
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Offer a draw</TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button onClick={() => setShowResign(true)}
+                                                className="h-9 px-4 rounded-xl text-sm font-semibold border border-red-500/40 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center gap-1.5">
+                                                <FaFlag className="text-xs" /> Resign
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Resign game</TooltipContent>
+                                    </Tooltip>
+                                    <button onClick={() => setScreen("setup")}
+                                        className="h-9 px-4 rounded-xl text-sm font-semibold border border-border bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-all hidden sm:flex">
+                                        New Game
+                                    </button>
+                                </>
+                            )}
+                        </div> */}
+                {/* </div> */}
+                {/* </div> */}
 
                 {/* ═══ RESIGN DIALOG ═══ */}
                 <Dialog open={showResign} onOpenChange={setShowResign}>
