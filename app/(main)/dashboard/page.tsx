@@ -126,7 +126,7 @@ export default function ResponsiveChessDashboard() {
                                 title="Quick Play"
                                 desc="10 min Rapid"
                                 primary
-                                onClick={() => router.push("/match-making")}
+                                onClick={() => router.push("/chessv6")}
                             />
                             <GameCard
                                 icon={<Users className="text-blue-500" />}
