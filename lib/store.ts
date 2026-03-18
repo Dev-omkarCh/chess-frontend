@@ -1,12 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/redux/authSlice';
+import gameSlice from '@/redux/gameSlice';
+
 
 // makeStore ensures a fresh store is created per request
 export const makeStore = () => {
     return configureStore({
         reducer: {
             auth: authReducer,
-            // Add more slices (like gameSlice) here as you grow
+            game: gameSlice,
         },
         middleware: (getDefaultMiddleware) =>
             getDefaultMiddleware({

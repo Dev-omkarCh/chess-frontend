@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { useAppSelector } from '@/lib/hooks';
+import { useAppDispatch, useAppSelector } from '@/lib/hooks';
+import { setStats } from '@/redux/gameSlice';
 
 interface SocketContextType {
     socket: Socket | null;
@@ -11,40 +12,49 @@ interface SocketContextType {
 const SocketContext = createContext<SocketContextType>({ socket: null });
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
-    const socketRef = useRef<Socket | null>(null);
+    const [socket, setSocket] = React.useState<Socket | null>(null);
     const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+    const dispatch = useAppDispatch();
 
     useEffect(() => {
-        // Only connect if authenticated and no existing connection
-        if (isAuthenticated && user && !socketRef.current) {
-            socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8000', {
-                withCredentials: true, // Send cookies to backend for auth
-                transports: ['websocket'], // Force WebSocket for performance
-                query: {
-                    userId: user._id
-                }
+        let newSocket: Socket | null = null;
+
+        if (isAuthenticated && user?._id && !socket) {
+            newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8000', {
+                withCredentials: true,
+                transports: ['websocket'],
+                query: { userId: user._id }
             });
 
-            socketRef.current.on('connect', () => {
-                console.log('🚀 Socket Connected:', socketRef.current?.id);
+            newSocket.on('connect', () => {
+                console.log('🚀 Socket Connected:', newSocket?.id);
+                // Move setSocket inside the connect event to ensure 
+                // components only get a VALID, connected socket.
+                setSocket(newSocket);
             });
 
-            socketRef.current.on('connect_error', (err) => {
+            newSocket.on('match:update-stats', (data: { onlineUsers: number; usersInQueue: number }) => {
+                console.log('[Socket] Match stats updated:', data);
+                dispatch(setStats(data));
+            });
+
+            newSocket.on('connect_error', (err) => {
                 console.error('❌ Socket Connection Error:', err.message);
             });
         }
 
-        // Cleanup: Disconnect when user logs out or component unmounts
         return () => {
-            if (socketRef.current) {
-                socketRef.current.disconnect();
-                socketRef.current = null;
+            // Use the local variable to ensure we disconnect the right one
+            if (newSocket) {
+                newSocket.disconnect();
+                setSocket(null);
             }
         };
-    }, [isAuthenticated, user]);
+        // Removed 'socket' from dependencies to prevent infinite loops
+    }, [isAuthenticated, user, dispatch]);
 
     return (
-        <SocketContext.Provider value={{ socket: socketRef.current }}>
+        <SocketContext.Provider value={{ socket: socket }}>
             {children}
         </SocketContext.Provider>
     );

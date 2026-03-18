@@ -1,22 +1,17 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Chess, Square, PieceSymbol, Color } from "chess.js";
-import { useAppSelector } from "@/lib/hooks";
+import { Chess, Square, PieceSymbol } from "chess.js";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { RootState } from "@/lib/store";
 import {
     FaFlag, FaHandshake, FaVolumeUp, FaVolumeMute,
-    FaPaperPlane, FaSmile, FaChevronLeft, FaChevronRight,
 } from "react-icons/fa";
 import { MdFlipCameraAndroid } from "react-icons/md";
 import { BsChatDots, BsArrowLeft } from "react-icons/bs";
-import { GiChessKing, GiChessBishop } from "react-icons/gi";
-import { HiLightningBolt } from "react-icons/hi";
-import { IoSearchOutline, IoClose } from "react-icons/io5";
-import { TbChessFilled } from "react-icons/tb";
+import { GiChessKing } from "react-icons/gi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
     Dialog, DialogContent, DialogHeader,
     DialogTitle, DialogDescription,
@@ -25,7 +20,7 @@ import {
     Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { BoardSettings, BoardTheme, getColor, getPiece, pieceStyleType } from "@/lib/pieces-registry";
+import { BoardTheme, getColor, getPiece, pieceStyleType } from "@/lib/pieces-registry";
 import { Settings } from "lucide-react";
 import BoardSettingsDialog from "@/components/lobby/SettingsDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -34,7 +29,9 @@ import { ChatPanel } from "@/features/chess/ChatPanel";
 import { SetupScreen } from "@/features/chess/SetupScreen";
 import { MoveNav } from "@/features/chess/MoveNav";
 import { useMatchMaking } from "@/hooks/useMatchMaking";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useSocket } from "@/context/SocketProvider";
+import { setGameState } from "@/redux/gameSlice";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -43,7 +40,6 @@ type AppScreen = "lobby" | "setup" | "game";
 type GameStatus = "playing" | "check" | "checkmate" | "stalemate" | "draw" | "resigned";
 type PromotionPiece = "q" | "r" | "b" | "n";
 
-interface TimeControl { label: string; seconds: number; desc: string; icon: React.ReactNode }
 interface MoveEntry {
     san: string; from: Square | ""; to: Square | ""; piece: string;
     captured?: string; color: "w" | "b"; moveNumber: number; fen: string;
@@ -60,424 +56,10 @@ interface ChatMessage {
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
 
-const UNICODE: Record<string, string> = {
-    wK: "♔", wQ: "♕", wR: "♖", wB: "♗", wN: "♘", wP: "♙",
-    bK: "♚", bQ: "♛", bR: "♜", bB: "♝", bN: "♞", bP: "♟",
-};
-const PIECE_VAL: Record<PieceSymbol, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
-
-const TIME_CONTROLS: TimeControl[] = [
-    { label: "1 min", seconds: 60, desc: "Bullet", icon: <HiLightningBolt className="text-yellow-400 text-xl" /> },
-    { label: "3 min", seconds: 180, desc: "Blitz", icon: <HiLightningBolt className="text-orange-400 text-xl" /> },
-    { label: "5 min", seconds: 300, desc: "Rapid", icon: <GiChessBishop className="text-emerald-400 text-xl" /> },
-    { label: "10 min", seconds: 600, desc: "Classical", icon: <GiChessKing className="text-blue-400 text-xl" /> },
-];
-
-const QUICK_EMOJIS = ["👍", "😂", "😮", "😢", "😡", "🎉", "🤝", "👏", "🔥", "❓", "⚡", "♟️", "🤔", "😤", "🙏", "💀"];
-
-const MOCK_GIFS = [
-    { id: "g1", url: "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif", title: "chess" },
-    { id: "g2", url: "https://media.giphy.com/media/3oEjI789af0AVurF60/giphy.gif", title: "thinking" },
-    { id: "g3", url: "https://media.giphy.com/media/l46Cy1rHbQ92uuLXa/giphy.gif", title: "gg" },
-    { id: "g4", url: "https://media.giphy.com/media/fUqfaPVjiAQcfticZH/giphy.gif", title: "winning" },
-    { id: "g5", url: "https://media.giphy.com/media/26BRBKqUiq586bRVm/giphy.gif", title: "nice" },
-    { id: "g6", url: "https://media.giphy.com/media/3ornk57KwDXf81rjWM/giphy.gif", title: "wow" },
-];
-
 const BOT_REPLIES = [
     "Nice move! ♟", "Hmm, didn't see that 🤔", "You're good!", "GG!",
     "😮", "👏", "Let's play again!", "Interesting...", "Well played 🎉",
 ];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Clock
-// ─────────────────────────────────────────────────────────────────────────────
-function Clock({ seconds, active }: { seconds: number; active: boolean }) {
-    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
-    const s = (seconds % 60).toString().padStart(2, "0");
-    const isLow = seconds < 30 && active;
-    return (
-        <div className={cn(
-            "font-mono font-black tabular-nums tracking-widest select-none rounded-lg px-3 py-2 text-xl transition-all duration-300 min-w-[80px] text-center",
-            active
-                ? isLow
-                    ? "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30"
-                    : "bg-primary text-primary-foreground shadow-md"
-                : "bg-muted text-muted-foreground"
-        )}>
-            {m}:{s}
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Captured pieces display
-// ─────────────────────────────────────────────────────────────────────────────
-function Captured({ pieces, color }: { pieces: PieceSymbol[]; color: Color }) {
-    const sorted = [...pieces].sort((a, b) => PIECE_VAL[b] - PIECE_VAL[a]);
-    const adv = pieces.reduce((s, p) => s + PIECE_VAL[p], 0);
-    if (pieces.length === 0) return <div className="h-5" />;
-    return (
-        <div className="flex items-center gap-px flex-wrap h-5">
-            {sorted.map((p, i) => (
-                <span key={i} className={cn(
-                    "text-sm leading-none",
-                    color === "w"
-                        ? "text-white [text-shadow:0_1px_3px_rgba(0,0,0,1)]"
-                        : "text-neutral-900 [text-shadow:0_1px_2px_rgba(255,255,255,0.4)]"
-                )}
-                >
-                    <img src={getPiece(p, color, "space")} className="w-4 h-4" />
-                </span>
-            ))}
-            {adv > 0 && <span className="text-xs text-muted-foreground font-bold ml-1">+{adv}</span>}
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Player strip (shown above/below board)
-// ─────────────────────────────────────────────────────────────────────────────
-function PlayerStrip({
-    name, subtitle, color, seconds, active, capturedPieces, isGameOver,
-}: {
-    name: string; subtitle: string; color: Color;
-    seconds: number; active: boolean;
-    capturedPieces: PieceSymbol[]; isGameOver: boolean;
-}) {
-    return (
-        <div className={cn(
-            "flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all duration-300 w-full",
-            active && !isGameOver
-                ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
-                : "border-border bg-card"
-        )}>
-            <div className="flex items-center gap-3 min-w-0">
-                {/* Avatar */}
-                <div className={cn(
-                    "w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-xl font-black border-2 shadow-sm",
-                    color === "w"
-                        ? "bg-neutral-50 text-neutral-900 border-neutral-300"
-                        : "bg-neutral-900 text-white border-neutral-700"
-                )}>
-                    {color === "w" ? "♔" : "♚"}
-                </div>
-                <div className="min-w-0 flex-1">
-                    <p className="font-bold text-base leading-tight truncate">{name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-                    <Captured pieces={capturedPieces} color={color === "w" ? "b" : "w"} />
-                </div>
-            </div>
-            <Clock seconds={seconds} active={active && !isGameOver} />
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Chat panel
-// ─────────────────────────────────────────────────────────────────────────────
-function ChatPanel({
-    messages, onSend, onClose,
-}: {
-    messages: ChatMessage[];
-    onSend: (type: "text" | "emoji" | "gif", content: string) => void;
-    onClose: () => void;
-}) {
-    const [input, setInput] = useState("");
-    const [tab, setTab] = useState<"chat" | "emoji" | "gif">("chat");
-    const [gifSearch, setGifSearch] = useState("");
-    const bottomRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
-
-    const send = () => {
-        if (!input.trim()) return;
-        onSend("text", input.trim());
-        setInput("");
-    };
-
-    const filteredGifs = MOCK_GIFS.filter(g => !gifSearch || g.title.includes(gifSearch.toLowerCase()));
-
-    return (
-        <div className="flex flex-col h-full bg-card border-l border-border">
-            {/* Header */}
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-border flex-shrink-0">
-                <BsChatDots className="text-primary text-base" />
-                <span className="font-bold text-sm flex-1">Chat</span>
-                <div className="flex gap-1 bg-muted rounded-lg p-1">
-                    {(["chat", "emoji", "gif"] as const).map(t => (
-                        <button key={t} onClick={() => setTab(t)}
-                            className={cn(
-                                "text-xs px-2.5 py-1 rounded-md font-semibold transition-all",
-                                tab === t ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                            )}>
-                            {t === "chat" ? "Chat" : t === "emoji" ? "😊" : "GIF"}
-                        </button>
-                    ))}
-                </div>
-                <button onClick={onClose} className="ml-1 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-accent">
-                    <IoClose className="text-base" />
-                </button>
-            </div>
-
-            {/* Messages area */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
-                {messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-3 text-center py-8">
-                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-2xl">♟️</div>
-                        <p className="text-sm text-muted-foreground">No messages yet.<br />Say hello! 👋</p>
-                    </div>
-                ) : messages.map(msg => (
-                    <div key={msg.id} className={cn("flex gap-2 items-end", msg.sender === "me" ? "flex-row-reverse" : "flex-row")}>
-                        <div className={cn(
-                            "w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-black border-2",
-                            msg.sender === "me"
-                                ? "bg-neutral-50 text-neutral-900 border-neutral-200"
-                                : "bg-neutral-900 text-white border-neutral-700"
-                        )}>
-                            {msg.sender === "me" ? "♔" : "♚"}
-                        </div>
-                        <div className={cn(
-                            "max-w-[75%] rounded-2xl px-3 py-2",
-                            msg.sender === "me"
-                                ? "bg-primary text-primary-foreground rounded-br-sm"
-                                : "bg-muted text-foreground rounded-bl-sm"
-                        )}>
-                            {msg.type === "gif"
-                                ? <img src={msg.content} alt="gif" className="rounded-xl max-w-full max-h-28 object-cover" />
-                                : <span className={cn("text-sm leading-relaxed", msg.type === "emoji" && "text-2xl")}>{msg.content}</span>
-                            }
-                            <p className={cn("text-[10px] mt-1 opacity-60", msg.sender === "me" ? "text-right" : "")}>
-                                {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </p>
-                        </div>
-                    </div>
-                ))}
-                <div ref={bottomRef} />
-            </div>
-
-            {/* Emoji picker */}
-            {tab === "emoji" && (
-                <div className="border-t border-border p-3 bg-muted/30 flex-shrink-0">
-                    <div className="grid grid-cols-8 gap-1.5">
-                        {QUICK_EMOJIS.map(e => (
-                            <button key={e} onClick={() => { onSend("emoji", e); setTab("chat"); }}
-                                className="text-xl hover:scale-125 transition-transform p-1 rounded-lg hover:bg-accent">
-                                {e}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* GIF picker */}
-            {tab === "gif" && (
-                <div className="border-t border-border flex-shrink-0 bg-muted/30">
-                    <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
-                        <IoSearchOutline className="text-muted-foreground flex-shrink-0" />
-                        <input value={gifSearch} onChange={e => setGifSearch(e.target.value)}
-                            placeholder="Search GIFs…"
-                            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-1.5 p-2 max-h-36 overflow-y-auto">
-                        {filteredGifs.map(g => (
-                            <button key={g.id} onClick={() => { onSend("gif", g.url); setTab("chat"); }}
-                                className="rounded-xl overflow-hidden border border-border hover:border-primary hover:scale-105 transition-all">
-                                <img src={g.url} alt={g.title} className="w-full h-16 object-cover" />
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Text input */}
-            {tab === "chat" && (
-                <div className="border-t border-border flex items-center gap-2 px-3 py-2.5 flex-shrink-0 bg-card">
-                    <button onClick={() => setTab("emoji")}
-                        className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0">
-                        <FaSmile className="text-lg" />
-                    </button>
-                    <button onClick={() => setTab("gif")}
-                        className="text-muted-foreground hover:text-primary transition-colors text-xs font-black flex-shrink-0">
-                        GIF
-                    </button>
-                    <input value={input} onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && send()}
-                        placeholder="Message…"
-                        className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground min-w-0" />
-                    <button onClick={send} disabled={!input.trim()}
-                        className="text-primary hover:scale-110 transition-transform disabled:opacity-30 disabled:scale-100 flex-shrink-0">
-                        <FaPaperPlane className="text-sm" />
-                    </button>
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Setup Screen
-// ─────────────────────────────────────────────────────────────────────────────
-function SetupScreen({ onStart, onBack }: {
-    onStart: (timeSeconds: number, chatEnabled: boolean) => void;
-    onBack: () => void;
-}) {
-    const [selectedTime, setSelectedTime] = useState(3);
-    const [chatEnabled, setChatEnabled] = useState(true);
-
-    return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-            <div className="w-full max-w-lg">
-                <button onClick={onBack}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-10 transition-colors group font-medium">
-                    <BsArrowLeft className="group-hover:-translate-x-0.5 transition-transform" />
-                    Back to Lobby
-                </button>
-
-                <div className="flex items-center gap-4 mb-10">
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                        <GiChessKing className="text-4xl text-primary" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-black tracking-tight leading-none">New Game</h1>
-                        <p className="text-muted-foreground mt-1">Configure your match settings</p>
-                    </div>
-                </div>
-
-                {/* Time controls */}
-                <div className="mb-8">
-                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">Time Control</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {TIME_CONTROLS.map((tc, i) => (
-                            <button key={i} onClick={() => setSelectedTime(i)}
-                                className={cn(
-                                    "flex flex-col items-center gap-3 py-5 px-3 rounded-2xl border-2 transition-all font-semibold",
-                                    selectedTime === i
-                                        ? "border-primary bg-primary/8 shadow-xl shadow-primary/15 scale-[1.03]"
-                                        : "border-border bg-card hover:border-primary/40 hover:bg-accent hover:scale-[1.01]"
-                                )}>
-                                <span className="text-3xl">{tc.icon}</span>
-                                <div className="text-center">
-                                    <p className={cn("font-black text-base leading-none", selectedTime === i ? "text-foreground" : "text-muted-foreground")}>{tc.label}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">{tc.desc}</p>
-                                </div>
-                                {selectedTime === i && (
-                                    <div className="w-2 h-2 rounded-full bg-primary" />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Chat toggle */}
-                <div className="mb-8 bg-card border border-border rounded-2xl px-5 py-4 flex items-center justify-between">
-                    <div>
-                        <p className="font-bold text-base">In-game Chat</p>
-                        <p className="text-sm text-muted-foreground mt-0.5">Send messages, emojis &amp; GIFs during the game</p>
-                    </div>
-                    <Switch checked={chatEnabled} onCheckedChange={setChatEnabled}
-                        className="data-[state=checked]:bg-primary ml-4" />
-                </div>
-
-                {/* Summary */}
-                <div className="mb-6 rounded-2xl bg-muted/50 border border-border px-5 py-4 flex items-center gap-4">
-                    <span className="text-2xl">{TIME_CONTROLS[selectedTime].icon}</span>
-                    <div className="text-sm text-muted-foreground">
-                        <span className="font-bold text-foreground text-base">{TIME_CONTROLS[selectedTime].label} {TIME_CONTROLS[selectedTime].desc}</span>
-                        <span className="mx-2">·</span>
-                        Chat {chatEnabled ? <span className="text-primary font-semibold">enabled</span> : <span className="font-semibold">disabled</span>}
-                    </div>
-                </div>
-
-                <button
-                    onClick={() => onStart(TIME_CONTROLS[selectedTime].seconds, chatEnabled)}
-                    className="w-full py-4 rounded-2xl text-lg font-black tracking-wide bg-primary text-primary-foreground hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-primary/25">
-                    Start Game →
-                </button>
-            </div>
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Lobby Screen
-// ─────────────────────────────────────────────────────────────────────────────
-function LobbyScreen({ onNewGame, username }: { onNewGame: () => void; username: string }) {
-    return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-            <div className="text-center w-full max-w-sm">
-                {/* Decorative mini board */}
-                <div className="relative inline-block mb-10 mx-auto">
-                    <div className="grid grid-cols-4 w-32 h-32 rounded-3xl overflow-hidden shadow-2xl border-4 border-border mx-auto">
-                        {Array.from({ length: 16 }).map((_, i) => (
-                            <div key={i} className={cn(
-                                "w-full h-full",
-                                (Math.floor(i / 4) + (i % 4)) % 2 === 0
-                                    ? "bg-[oklch(0.91_0.03_95)]"
-                                    : "bg-[oklch(0.48_0.10_155)]"
-                            )} />
-                        ))}
-                    </div>
-                    <GiChessKing className="absolute inset-0 m-auto text-6xl text-white [filter:drop-shadow(0_4px_12px_rgba(0,0,0,0.6))]" />
-                </div>
-
-                <h1 className="text-5xl font-black tracking-tight mb-2">Chess</h1>
-                <p className="text-muted-foreground text-base mb-1">
-                    Welcome back, <span className="text-foreground font-bold">{username}</span>
-                </p>
-                <p className="text-sm text-muted-foreground/60 mb-12">Play · Think · Win</p>
-
-                <button
-                    onClick={onNewGame}
-                    className="w-full py-4 rounded-2xl text-lg font-black bg-primary text-primary-foreground hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-primary/25 mb-4">
-                    ♟ New Game
-                </button>
-                <p className="text-sm text-muted-foreground/50">More modes coming soon</p>
-            </div>
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Move navigation bar
-// ─────────────────────────────────────────────────────────────────────────────
-function MoveNav({
-    onFirst, onBack, onForward, onLast, onReturnLive,
-    canBack, canForward, isViewing,
-}: {
-    onFirst: () => void; onBack: () => void; onForward: () => void;
-    onLast: () => void; onReturnLive: () => void;
-    canBack: boolean; canForward: boolean; isViewing: boolean;
-}) {
-    return (
-        <div className="flex items-center gap-1">
-            <button onClick={onFirst} disabled={!canBack}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-                ⏮
-            </button>
-            <button onClick={onBack} disabled={!canBack}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-                <FaChevronLeft className="text-xs" />
-            </button>
-            <button onClick={onForward} disabled={!canForward}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-                <FaChevronRight className="text-xs" />
-            </button>
-            <button onClick={onLast} disabled={!canForward}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-                ⏭
-            </button>
-            {isViewing && (
-                <button onClick={onReturnLive}
-                    className="ml-1 px-2.5 h-8 rounded-lg text-xs font-bold bg-blue-500/10 text-blue-500 border border-blue-500/25 hover:bg-blue-500/20 transition-all">
-                    Live ↩
-                </button>
-            )}
-        </div>
-    );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
@@ -513,7 +95,6 @@ export default function ChessPage() {
     const [wTime, setWTime] = useState(600);
     const [bTime, setBTime] = useState(600);
     const [activeTimer, setActiveTimer] = useState<"w" | "b" | null>(null);
-    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Chat
     const [chatEnabled, setChatEnabled] = useState(true);
@@ -545,7 +126,13 @@ export default function ChessPage() {
 
     const [boardTheme, setBoardTheme] = useState<BoardTheme>("green");
     const [pieceStyle, setPieceStyle] = useState<pieceStyleType>("standard");
+    const { joinQueue } = useMatchMaking();
     const router = useRouter();
+
+    const { id: gameId } = useParams();
+    const { socket } = useSocket();
+    const dispatch = useAppDispatch();
+    const { white, black, color } = useAppSelector((state: RootState) => state.game);
 
     // Scroll move list
     useEffect(() => {
@@ -553,19 +140,25 @@ export default function ChessPage() {
             moveListRef.current.scrollTop = moveListRef.current.scrollHeight;
     }, [moves, isViewing]);
 
-    // Timer
     useEffect(() => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        if (!activeTimer || isOver) return;
-        timerRef.current = setInterval(() => {
-            if (activeTimer === "w") {
-                setWTime(t => { if (t <= 1) { clearInterval(timerRef.current!); endGame("Black wins on time! ⏱"); return 0; } return t - 1; });
-            } else {
-                setBTime(t => { if (t <= 1) { clearInterval(timerRef.current!); endGame("White wins on time! ⏱"); return 0; } return t - 1; });
-            }
-        }, 1000);
-        return () => clearInterval(timerRef.current!);
-    }, [activeTimer, isOver]);
+        if (!socket) return;
+
+        socket.emit("game:join", { gameId });
+
+        socket.on("game:init", ({ fen, white, black, color, history }: { fen: string; white: string; black: string; color: string; history: string[] }) => {
+            console.log("Received game:init", { fen, white, black, color, history });
+            dispatch(setGameState({ fen, white, black, color, history }));
+        });
+
+        socket.on("game:move-made", ({ move, fen, turn }: { move: { from: Square; to: Square; promotion: PromotionPiece | null }; fen: string; turn: 'w' | 'b' }) => {
+            console.log("Received game:move-made", { move, fen, turn });
+            const { from, to, promotion } = move;
+            execMove(from, to, promotion ?? undefined);
+            setBoardFlipped(true);
+        });
+
+    }, [socket, dispatch])
+
 
     const endGame = useCallback((result: string) => {
         setActiveTimer(null);
@@ -599,6 +192,8 @@ export default function ChessPage() {
         setChatEnabled(chat); setChatOpen(false); setUnread(0); setChatMsgs([]);
         setShowResult(false); setGameResult("");
         setScreen("game");
+        joinQueue();
+        router.push("/matchmaking");
     }, []);
 
     // History navigation
@@ -635,7 +230,10 @@ export default function ChessPage() {
                         setPromotion({ from: selected, to: sq }); setSelected(null); setLegalSquares([]); return;
                     }
                 }
-                execMove(selected, sq); return;
+                execMove(selected, sq);
+                if (!socket) return;
+                socket.emit("game:move", { from: selected, to: sq, promotion: null });
+                return;
             }
             if (piece && piece.color === game.turn()) { pickSq(sq); return; }
             setSelected(null); setLegalSquares([]); return;
@@ -879,6 +477,7 @@ export default function ChessPage() {
 
     // Board render
     const renderBoard = () => {
+        if (color === null) return null;
         const ranks = boardFlipped ? [...RANKS].reverse() : RANKS;
         const files = boardFlipped ? [...FILES].reverse() : FILES;
         return ranks.map(rank => files.map(file => {
@@ -969,9 +568,11 @@ export default function ChessPage() {
         }));
     };
 
+    console.log("render");
+
     // ── Screen router ────────────────────────────────────────────────────────
     // if (screen === "lobby") return <LobbyScreen onNewGame={() => setScreen("setup")} username={username} />;
-    if (screen === "setup") return <SetupScreen onStart={startGame} onBack={() => setScreen("lobby")} />;
+    // if (screen === "setup") return <SetupScreen onStart={startGame} onBack={() => setScreen("lobby")} />;
 
     // ── Game screen ──────────────────────────────────────────────────────────
     return (
@@ -981,11 +582,6 @@ export default function ChessPage() {
 
                 {/* ═══ HEADER ═══ */}
                 <header className="flex-shrink-0 h-14 border-b border-border bg-card flex items-center px-4 gap-3 z-50">
-                    <button onClick={() => setScreen("lobby")}
-                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group font-medium">
-                        <BsArrowLeft className="group-hover:-translate-x-0.5 transition-transform" />
-                        <span className="hidden sm:inline">Lobby</span>
-                    </button>
                     <div className="w-px h-5 bg-border" />
                     {/* <TbChessFilled className="text-xl text-primary" /> */}
                     <span className="font-black text-base tracking-tight">Chess</span>
@@ -1020,8 +616,10 @@ export default function ChessPage() {
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <button onClick={() => setBoardFlipped(v => !v)}
-                                    className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all text-lg">
+                                <button
+                                    // disabled={true}
+                                    onClick={() => setBoardFlipped(v => !v)}
+                                    className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all text-lg bg-muted disabled:cursor-not-allowed disabled:opacity-50">
                                     <MdFlipCameraAndroid />
                                 </button>
                             </TooltipTrigger>
@@ -1071,6 +669,9 @@ export default function ChessPage() {
                                 name="Black" subtitle="Computer" color="b"
                                 seconds={bTime} active={activeTimer === "b" && !isOver}
                                 capturedPieces={captured.w} isGameOver={isOver}
+                                endGame={endGame}
+                                activeTimer={activeTimer}
+                                isOver={isOver}
                             />
 
                             {/* Board */}
@@ -1104,7 +705,7 @@ export default function ChessPage() {
                                                     return (
                                                         <button key={p} onClick={() => handlePromo(p)}
                                                             className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center gap-1 bg-muted hover:bg-primary hover:text-primary-foreground transition-all border-2 border-border hover:border-primary hover:scale-105 active:scale-95">
-                                                            <span className="text-4xl">{UNICODE[`${c}${p.toUpperCase()}`]}</span>
+                                                            <img src={getPiece(p, c, pieceStyle)} alt={labels[p]} className="h-12 w-12 object-contain" />
                                                             <span className="text-xs font-semibold opacity-70">{labels[p]}</span>
                                                         </button>
                                                     );
@@ -1120,6 +721,9 @@ export default function ChessPage() {
                                 name="White" subtitle={username} color="w"
                                 seconds={wTime} active={activeTimer === "w" && !isOver}
                                 capturedPieces={captured.b} isGameOver={isOver}
+                                endGame={endGame}
+                                activeTimer={activeTimer}
+                                isOver={isOver}
                             />
 
                             {/* Controls bar */}
@@ -1335,6 +939,7 @@ export default function ChessPage() {
 
                 {/* ═══ RESULT DIALOG ═══ */}
                 <Dialog open={showResult} onOpenChange={setShowResult}>
+
                     <DialogContent className="sm:max-w-md">
                         <div className="flex flex-col items-center gap-6 py-4 text-center">
                             <div className="w-20 h-20 rounded-3xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center">

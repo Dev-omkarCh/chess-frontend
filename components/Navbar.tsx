@@ -14,7 +14,7 @@ const Navbar = () => {
 
     if (isLoading) {
         return (
-            <nav className="flex items-center justify-between px-6 py-4 border-b border-border backdrop-blur-md bg-card sticky top-0 z-50">
+            <nav className="flex items-center justify-between px-6 py-4 border-b border-border backdrop-blur-md bg-card sticky top-0 z-50 w-full">
                 <div className="flex items-center gap-2">
                     <div className="bg-primary p-1.5 rounded-lg shadow-lg shadow-primary/20">
                         <Swords size={22} className="text-primary-foreground" />
@@ -34,7 +34,7 @@ const Navbar = () => {
     }
 
     return (
-        <nav className="flex items-center justify-between px-6 py-4 border-b border-border backdrop-blur-md bg-card sticky top-0 z-50">
+        <nav className="flex items-center justify-between px-6 py-4 border-b border-border backdrop-blur-md bg-card sticky top-0 z-50 w-full">
             <div className="flex items-center gap-2">
                 <div className="bg-primary p-1.5 rounded-lg shadow-lg shadow-primary/20">
                     <Swords size={22} className="text-primary-foreground" />
