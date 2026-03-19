@@ -26,7 +26,6 @@ import BoardSettingsDialog from "@/components/lobby/SettingsDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PlayerStrip } from "@/features/chess/PlayerStrip";
 import { ChatPanel } from "@/features/chess/ChatPanel";
-import { SetupScreen } from "@/features/chess/SetupScreen";
 import { MoveNav } from "@/features/chess/MoveNav";
 import { useMatchMaking } from "@/hooks/useMatchMaking";
 import { useParams, useRouter } from "next/navigation";
@@ -133,6 +132,7 @@ export default function ChessPage() {
     const { socket } = useSocket();
     const dispatch = useAppDispatch();
     const { white, black, color } = useAppSelector((state: RootState) => state.game);
+    const currrentGameFenRef = useRef<string | null>(null);
 
     // Scroll move list
     useEffect(() => {
@@ -143,21 +143,32 @@ export default function ChessPage() {
     useEffect(() => {
         if (!socket) return;
 
+        if (color && color === "b") {
+            setBoardFlipped(true);
+        }
+
         socket.emit("game:join", { gameId });
 
         socket.on("game:init", ({ fen, white, black, color, history }: { fen: string; white: string; black: string; color: string; history: string[] }) => {
-            console.log("Received game:init", { fen, white, black, color, history });
+            console.log("[game:init] Start Game", { fen, white, black, color, history });
+            currrentGameFenRef.current = fen;
             dispatch(setGameState({ fen, white, black, color, history }));
         });
 
         socket.on("game:move-made", ({ move, fen, turn }: { move: { from: Square; to: Square; promotion: PromotionPiece | null }; fen: string; turn: 'w' | 'b' }) => {
-            console.log("Received game:move-made", { move, fen, turn });
             const { from, to, promotion } = move;
-            execMove(from, to, promotion ?? undefined);
-            setBoardFlipped(true);
+            if (turn === color) {
+                console.log("[game:move-made] Received Move", { move, fen, turn });
+                console.log(`[Execute] Executing ${color === "w" ? "Black" : "White"} Move on board`);
+                if (promotion) {
+                    console.log(`[Promotion] Move includes promotion to ${promotion.toUpperCase()}`);
+                    execMove(from, to, promotion);
+                }
+                execMove(from, to, undefined);
+            }
         });
 
-    }, [socket, dispatch])
+    }, [socket, dispatch, color])
 
 
     const endGame = useCallback((result: string) => {
@@ -232,6 +243,7 @@ export default function ChessPage() {
                 }
                 execMove(selected, sq);
                 if (!socket) return;
+                console.log(`[Move] ${color} Made a Move`, { from: selected, to: sq })
                 socket.emit("game:move", { from: selected, to: sq, promotion: null });
                 return;
             }
@@ -247,10 +259,16 @@ export default function ChessPage() {
     }, [game]);
 
     const execMove = useCallback((from: Square, to: Square, promo: PromotionPiece = "q") => {
-        const gc = new Chess(game.fen());
+        const gc = new Chess(currrentGameFenRef.current ?? undefined);
+        console.log('[ExecMove] Game fen: ', game.fen());
         try {
+            console.log('[ExecMove] Move Data: ', { from, to, promotion: promo });
             const r = gc.move({ from, to, promotion: promo });
+
             if (!r) { beep("illegal"); return; }
+            console.log('[ExecMove] New Game fen: ', gc.fen());
+            console.log('[ExecMove] Move Executed Successfully !!');
+            currrentGameFenRef.current = gc.fen();
             setGame(gc); setLastMove({ from, to });
             setSelected(null); setLegalSquares([]);
             setAnimSq(to); setTimeout(() => setAnimSq(null), 350);
@@ -269,7 +287,10 @@ export default function ChessPage() {
             else if (gc.isDraw()) setTimeout(() => endGame("Draw"), 80);
             else if (gc.isCheck()) { beep("check"); setGameStatus("check"); }
             else setGameStatus("playing");
-        } catch { beep("illegal"); }
+        } catch {
+            console.error("Illegal move attempted:", { from, to, promo });
+            beep("illegal");
+        }
     }, [game, beep, endGame]);
 
     const handlePromo = useCallback((p: PromotionPiece) => {
@@ -477,7 +498,7 @@ export default function ChessPage() {
 
     // Board render
     const renderBoard = () => {
-        if (color === null) return null;
+        // if (color === null) return null;
         const ranks = boardFlipped ? [...RANKS].reverse() : RANKS;
         const files = boardFlipped ? [...FILES].reverse() : FILES;
         return ranks.map(rank => files.map(file => {
@@ -584,7 +605,9 @@ export default function ChessPage() {
                 <header className="flex-shrink-0 h-14 border-b border-border bg-card flex items-center px-4 gap-3 z-50">
                     <div className="w-px h-5 bg-border" />
                     {/* <TbChessFilled className="text-xl text-primary" /> */}
-                    <span className="font-black text-base tracking-tight">Chess</span>
+                    <button onClick={() => router.replace("/dashboard")}>
+                        <span className="font-black text-base tracking-tight">Chess</span>
+                    </button>
 
                     {/* Status badge */}
                     <Badge variant="outline" className={cn(
@@ -669,9 +692,9 @@ export default function ChessPage() {
                                 name="Black" subtitle="Computer" color="b"
                                 seconds={bTime} active={activeTimer === "b" && !isOver}
                                 capturedPieces={captured.w} isGameOver={isOver}
-                                endGame={endGame}
-                                activeTimer={activeTimer}
-                                isOver={isOver}
+                            // endGame={endGame}
+                            // activeTimer={activeTimer}
+                            // isOver={isOver}
                             />
 
                             {/* Board */}
@@ -721,9 +744,9 @@ export default function ChessPage() {
                                 name="White" subtitle={username} color="w"
                                 seconds={wTime} active={activeTimer === "w" && !isOver}
                                 capturedPieces={captured.b} isGameOver={isOver}
-                                endGame={endGame}
-                                activeTimer={activeTimer}
-                                isOver={isOver}
+                            // endGame={endGame}
+                            // activeTimer={activeTimer}
+                            // isOver={isOver}
                             />
 
                             {/* Controls bar */}

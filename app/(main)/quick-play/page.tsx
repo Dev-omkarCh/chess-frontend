@@ -21,7 +21,7 @@ const TIME_CONTROLS: TimeControl[] = [
     { label: "10 min", seconds: 600, desc: "Classical", icon: <GiChessKing className="text-blue-400 text-xl" /> },
 ];
 
-const SetupScreen = () => {
+export const SetupScreen = () => {
     const [selectedTime, setSelectedTime] = useState(3);
     const [chatEnabled, setChatEnabled] = useState(true);
 
