@@ -12,7 +12,13 @@ import { Switch } from "@/components/ui/switch";
 import { useMatchMaking } from "@/hooks/useMatchMaking";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
-import { TimeControl } from "@/features/chess/types";
+
+interface TimeControl {
+    label: string;
+    seconds: number;
+    desc: string;
+    icon: React.ReactNode;
+}
 
 const TIME_CONTROLS: TimeControl[] = [
     { label: "1 min", seconds: 60, desc: "Bullet", icon: <HiLightningBolt className="text-yellow-400 text-xl" /> },
