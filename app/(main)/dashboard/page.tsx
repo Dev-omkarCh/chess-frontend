@@ -11,6 +11,7 @@ import { RootState } from '@/lib/store';
 import { useSelector } from 'react-redux';
 import { useLogout } from '@/hooks/useLogout';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { cn } from '@/lib/utils';
 
 export default function ResponsiveChessDashboard() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -122,20 +123,20 @@ export default function ResponsiveChessDashboard() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                             <GameCard
-                                icon={<Play className="text-emerald-500" />}
+                                icon={<Play className="text-emerald-500 group-hover:fill-primary transition-colors ease-in-out duration-500" />}
                                 title="Quick Play"
-                                desc="10 min Rapid"
+                                desc="Find a random opponent"
                                 primary
-                                onClick={() => router.push("/match-making")}
+                                onClick={() => router.push("/quick-play")}
                             />
                             <GameCard
-                                icon={<Users className="text-blue-500" />}
+                                icon={<Users className="text-blue-500 group-hover:fill-blue-500 transition-colors ease-in-out duration-500" />}
                                 title="Friend"
                                 desc="Challenge someone"
                                 onClick={() => router.push("/social")}
                             />
                             <GameCard
-                                icon={<Bot className="text-purple-500" />}
+                                icon={<Bot className="text-purple-500 group-hover:fill-purple-500 transition-colors ease-in-out duration-500" />}
                                 title="Computer"
                                 desc="Stockfish level 8"
                                 onClick={() => router.push("/playBot")}
@@ -191,7 +192,10 @@ interface GameCardProps {
 function GameCard({ icon, title, desc, primary = false, onClick }: GameCardProps) {
     return (
         <button
-            className={`p-6 rounded-3xl border text-left transition-all ${primary ? 'bg-primary/5 border-primary ring-1 ring-primary/20' : 'bg-card border-border hover:border-primary/50'}`}
+            className={cn(
+                "p-6 rounded-3xl border text-left transition-all cursor-pointer group",
+                primary ? "bg-primary/5 border-primary ring-1 ring-primary/20" : "bg-card border-border hover:border-primary/50"
+            )}
             onClick={onClick}
         >
             <div className="w-12 h-12 rounded-xl bg-background flex items-center justify-center border border-border mb-4">{icon}</div>

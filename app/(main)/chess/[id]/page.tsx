@@ -1,22 +1,17 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Chess, Square, PieceSymbol, Color } from "chess.js";
-import { useAppSelector } from "@/lib/hooks";
+import { Chess, Square, PieceSymbol } from "chess.js";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { RootState } from "@/lib/store";
 import {
     FaFlag, FaHandshake, FaVolumeUp, FaVolumeMute,
-    FaPaperPlane, FaSmile, FaChevronLeft, FaChevronRight,
 } from "react-icons/fa";
 import { MdFlipCameraAndroid } from "react-icons/md";
 import { BsChatDots, BsArrowLeft } from "react-icons/bs";
-import { GiChessKing, GiChessBishop } from "react-icons/gi";
-import { HiLightningBolt } from "react-icons/hi";
-import { IoSearchOutline, IoClose } from "react-icons/io5";
-import { TbChessFilled } from "react-icons/tb";
+import { GiChessKing } from "react-icons/gi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
     Dialog, DialogContent, DialogHeader,
     DialogTitle, DialogDescription,
@@ -25,14 +20,17 @@ import {
     Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { BoardSettings, BoardTheme, getColor, getPiece, pieceStyleType } from "@/lib/pieces-registry";
+import { BoardTheme, getColor, getPiece, pieceStyleType } from "@/lib/pieces-registry";
 import { Settings } from "lucide-react";
 import BoardSettingsDialog from "@/components/lobby/SettingsDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PlayerStrip } from "@/features/chess/PlayerStrip";
 import { ChatPanel } from "@/features/chess/ChatPanel";
 import { MoveNav } from "@/features/chess/MoveNav";
-import { useRouter } from "next/navigation";
+import { useMatchMaking } from "@/hooks/useMatchMaking";
+import { useParams, useRouter } from "next/navigation";
+import { useSocket } from "@/context/SocketProvider";
+import { setGameState } from "@/redux/gameSlice";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -41,7 +39,6 @@ type AppScreen = "lobby" | "setup" | "game";
 type GameStatus = "playing" | "check" | "checkmate" | "stalemate" | "draw" | "resigned";
 type PromotionPiece = "q" | "r" | "b" | "n";
 
-interface TimeControl { label: string; seconds: number; desc: string; icon: React.ReactNode }
 interface MoveEntry {
     san: string; from: Square | ""; to: Square | ""; piece: string;
     captured?: string; color: "w" | "b"; moveNumber: number; fen: string;
@@ -58,145 +55,10 @@ interface ChatMessage {
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
 
-const UNICODE: Record<string, string> = {
-    wK: "♔", wQ: "♕", wR: "♖", wB: "♗", wN: "♘", wP: "♙",
-    bK: "♚", bQ: "♛", bR: "♜", bB: "♝", bN: "♞", bP: "♟",
-};
-
-const TIME_CONTROLS: TimeControl[] = [
-    { label: "1 min", seconds: 60, desc: "Bullet", icon: <HiLightningBolt className="text-yellow-400 text-xl" /> },
-    { label: "3 min", seconds: 180, desc: "Blitz", icon: <HiLightningBolt className="text-orange-400 text-xl" /> },
-    { label: "5 min", seconds: 300, desc: "Rapid", icon: <GiChessBishop className="text-emerald-400 text-xl" /> },
-    { label: "10 min", seconds: 600, desc: "Classical", icon: <GiChessKing className="text-blue-400 text-xl" /> },
-];
-
 const BOT_REPLIES = [
     "Nice move! ♟", "Hmm, didn't see that 🤔", "You're good!", "GG!",
     "😮", "👏", "Let's play again!", "Interesting...", "Well played 🎉",
 ];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Setup Screen
-// ─────────────────────────────────────────────────────────────────────────────
-function SetupScreen({ onStart, onBack }: {
-    onStart: (timeSeconds: number, chatEnabled: boolean) => void;
-    onBack: () => void;
-}) {
-    const [selectedTime, setSelectedTime] = useState(3);
-    const [chatEnabled, setChatEnabled] = useState(true);
-
-    return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-            <div className="w-full max-w-lg">
-                <button onClick={onBack}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-10 transition-colors group font-medium">
-                    <BsArrowLeft className="group-hover:-translate-x-0.5 transition-transform" />
-                    Back to Lobby
-                </button>
-
-                <div className="flex items-center gap-4 mb-10">
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                        <GiChessKing className="text-4xl text-primary" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-black tracking-tight leading-none">New Game</h1>
-                        <p className="text-muted-foreground mt-1">Configure your match settings</p>
-                    </div>
-                </div>
-
-                {/* Time controls */}
-                <div className="mb-8">
-                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">Time Control</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {TIME_CONTROLS.map((tc, i) => (
-                            <button key={i} onClick={() => setSelectedTime(i)}
-                                className={cn(
-                                    "flex flex-col items-center gap-3 py-5 px-3 rounded-2xl border-2 transition-all font-semibold",
-                                    selectedTime === i
-                                        ? "border-primary bg-primary/8 shadow-xl shadow-primary/15 scale-[1.03]"
-                                        : "border-border bg-card hover:border-primary/40 hover:bg-accent hover:scale-[1.01]"
-                                )}>
-                                <span className="text-3xl">{tc.icon}</span>
-                                <div className="text-center">
-                                    <p className={cn("font-black text-base leading-none", selectedTime === i ? "text-foreground" : "text-muted-foreground")}>{tc.label}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">{tc.desc}</p>
-                                </div>
-                                {selectedTime === i && (
-                                    <div className="w-2 h-2 rounded-full bg-primary" />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Chat toggle */}
-                <div className="mb-8 bg-card border border-border rounded-2xl px-5 py-4 flex items-center justify-between">
-                    <div>
-                        <p className="font-bold text-base">In-game Chat</p>
-                        <p className="text-sm text-muted-foreground mt-0.5">Send messages, emojis &amp; GIFs during the game</p>
-                    </div>
-                    <Switch checked={chatEnabled} onCheckedChange={setChatEnabled}
-                        className="data-[state=checked]:bg-primary ml-4" />
-                </div>
-
-                {/* Summary */}
-                <div className="mb-6 rounded-2xl bg-muted/50 border border-border px-5 py-4 flex items-center gap-4">
-                    <span className="text-2xl">{TIME_CONTROLS[selectedTime].icon}</span>
-                    <div className="text-sm text-muted-foreground">
-                        <span className="font-bold text-foreground text-base">{TIME_CONTROLS[selectedTime].label} {TIME_CONTROLS[selectedTime].desc}</span>
-                        <span className="mx-2">·</span>
-                        Chat {chatEnabled ? <span className="text-primary font-semibold">enabled</span> : <span className="font-semibold">disabled</span>}
-                    </div>
-                </div>
-
-                <button
-                    onClick={() => onStart(TIME_CONTROLS[selectedTime].seconds, chatEnabled)}
-                    className="w-full py-4 rounded-2xl text-lg font-black tracking-wide bg-primary text-primary-foreground hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-primary/25">
-                    Start Game →
-                </button>
-            </div>
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Lobby Screen
-// ─────────────────────────────────────────────────────────────────────────────
-function LobbyScreen({ onNewGame, username }: { onNewGame: () => void; username: string }) {
-    return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-            <div className="text-center w-full max-w-sm">
-                {/* Decorative mini board */}
-                <div className="relative inline-block mb-10 mx-auto">
-                    <div className="grid grid-cols-4 w-32 h-32 rounded-3xl overflow-hidden shadow-2xl border-4 border-border mx-auto">
-                        {Array.from({ length: 16 }).map((_, i) => (
-                            <div key={i} className={cn(
-                                "w-full h-full",
-                                (Math.floor(i / 4) + (i % 4)) % 2 === 0
-                                    ? "bg-[oklch(0.91_0.03_95)]"
-                                    : "bg-[oklch(0.48_0.10_155)]"
-                            )} />
-                        ))}
-                    </div>
-                    <GiChessKing className="absolute inset-0 m-auto text-6xl text-white [filter:drop-shadow(0_4px_12px_rgba(0,0,0,0.6))]" />
-                </div>
-
-                <h1 className="text-5xl font-black tracking-tight mb-2">Chess</h1>
-                <p className="text-muted-foreground text-base mb-1">
-                    Welcome back, <span className="text-foreground font-bold">{username}</span>
-                </p>
-                <p className="text-sm text-muted-foreground/60 mb-12">Play · Think · Win</p>
-
-                <button
-                    onClick={onNewGame}
-                    className="w-full py-4 rounded-2xl text-lg font-black bg-primary text-primary-foreground hover:opacity-90 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-primary/25 mb-4">
-                    ♟ New Game
-                </button>
-                <p className="text-sm text-muted-foreground/50">More modes coming soon</p>
-            </div>
-        </div>
-    );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
@@ -232,7 +94,6 @@ export default function ChessPage() {
     const [wTime, setWTime] = useState(600);
     const [bTime, setBTime] = useState(600);
     const [activeTimer, setActiveTimer] = useState<"w" | "b" | null>(null);
-    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Chat
     const [chatEnabled, setChatEnabled] = useState(true);
@@ -264,7 +125,14 @@ export default function ChessPage() {
 
     const [boardTheme, setBoardTheme] = useState<BoardTheme>("green");
     const [pieceStyle, setPieceStyle] = useState<pieceStyleType>("standard");
+    const { joinQueue } = useMatchMaking();
     const router = useRouter();
+
+    const { id: gameId } = useParams();
+    const { socket } = useSocket();
+    const dispatch = useAppDispatch();
+    const { white, black, color } = useAppSelector((state: RootState) => state.game);
+    const currrentGameFenRef = useRef<string | null>(null);
 
     // Scroll move list
     useEffect(() => {
@@ -272,19 +140,36 @@ export default function ChessPage() {
             moveListRef.current.scrollTop = moveListRef.current.scrollHeight;
     }, [moves, isViewing]);
 
-    // Timer
     useEffect(() => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        if (!activeTimer || isOver) return;
-        timerRef.current = setInterval(() => {
-            if (activeTimer === "w") {
-                setWTime(t => { if (t <= 1) { clearInterval(timerRef.current!); endGame("Black wins on time! ⏱"); return 0; } return t - 1; });
-            } else {
-                setBTime(t => { if (t <= 1) { clearInterval(timerRef.current!); endGame("White wins on time! ⏱"); return 0; } return t - 1; });
+        if (!socket) return;
+
+        if (color && color === "b") {
+            setBoardFlipped(true);
+        }
+
+        socket.emit("game:join", { gameId });
+
+        socket.on("game:init", ({ fen, white, black, color, history }: { fen: string; white: string; black: string; color: string; history: string[] }) => {
+            console.log("[game:init] Start Game", { fen, white, black, color, history });
+            currrentGameFenRef.current = fen;
+            dispatch(setGameState({ fen, white, black, color, history }));
+        });
+
+        socket.on("game:move-made", ({ move, fen, turn }: { move: { from: Square; to: Square; promotion: PromotionPiece | null }; fen: string; turn: 'w' | 'b' }) => {
+            const { from, to, promotion } = move;
+            if (turn === color) {
+                console.log("[game:move-made] Received Move", { move, fen, turn });
+                console.log(`[Execute] Executing ${color === "w" ? "Black" : "White"} Move on board`);
+                if (promotion) {
+                    console.log(`[Promotion] Move includes promotion to ${promotion.toUpperCase()}`);
+                    execMove(from, to, promotion);
+                }
+                execMove(from, to, undefined);
             }
-        }, 1000);
-        return () => clearInterval(timerRef.current!);
-    }, [activeTimer, isOver]);
+        });
+
+    }, [socket, dispatch, color])
+
 
     const endGame = useCallback((result: string) => {
         setActiveTimer(null);
@@ -318,6 +203,8 @@ export default function ChessPage() {
         setChatEnabled(chat); setChatOpen(false); setUnread(0); setChatMsgs([]);
         setShowResult(false); setGameResult("");
         setScreen("game");
+        joinQueue();
+        router.push("/matchmaking");
     }, []);
 
     // History navigation
@@ -354,7 +241,11 @@ export default function ChessPage() {
                         setPromotion({ from: selected, to: sq }); setSelected(null); setLegalSquares([]); return;
                     }
                 }
-                execMove(selected, sq); return;
+                execMove(selected, sq);
+                if (!socket) return;
+                console.log(`[Move] ${color} Made a Move`, { from: selected, to: sq })
+                socket.emit("game:move", { from: selected, to: sq, promotion: null });
+                return;
             }
             if (piece && piece.color === game.turn()) { pickSq(sq); return; }
             setSelected(null); setLegalSquares([]); return;
@@ -368,10 +259,16 @@ export default function ChessPage() {
     }, [game]);
 
     const execMove = useCallback((from: Square, to: Square, promo: PromotionPiece = "q") => {
-        const gc = new Chess(game.fen());
+        const gc = new Chess(currrentGameFenRef.current ?? undefined);
+        console.log('[ExecMove] Game fen: ', game.fen());
         try {
+            console.log('[ExecMove] Move Data: ', { from, to, promotion: promo });
             const r = gc.move({ from, to, promotion: promo });
+
             if (!r) { beep("illegal"); return; }
+            console.log('[ExecMove] New Game fen: ', gc.fen());
+            console.log('[ExecMove] Move Executed Successfully !!');
+            currrentGameFenRef.current = gc.fen();
             setGame(gc); setLastMove({ from, to });
             setSelected(null); setLegalSquares([]);
             setAnimSq(to); setTimeout(() => setAnimSq(null), 350);
@@ -390,7 +287,10 @@ export default function ChessPage() {
             else if (gc.isDraw()) setTimeout(() => endGame("Draw"), 80);
             else if (gc.isCheck()) { beep("check"); setGameStatus("check"); }
             else setGameStatus("playing");
-        } catch { beep("illegal"); }
+        } catch {
+            console.error("Illegal move attempted:", { from, to, promo });
+            beep("illegal");
+        }
     }, [game, beep, endGame]);
 
     const handlePromo = useCallback((p: PromotionPiece) => {
@@ -598,6 +498,7 @@ export default function ChessPage() {
 
     // Board render
     const renderBoard = () => {
+        // if (color === null) return null;
         const ranks = boardFlipped ? [...RANKS].reverse() : RANKS;
         const files = boardFlipped ? [...FILES].reverse() : FILES;
         return ranks.map(rank => files.map(file => {
@@ -688,6 +589,12 @@ export default function ChessPage() {
         }));
     };
 
+    console.log("render");
+
+    // ── Screen router ────────────────────────────────────────────────────────
+    // if (screen === "lobby") return <LobbyScreen onNewGame={() => setScreen("setup")} username={username} />;
+    // if (screen === "setup") return <SetupScreen onStart={startGame} onBack={() => setScreen("lobby")} />;
+
     // ── Game screen ──────────────────────────────────────────────────────────
     return (
         <TooltipProvider>
@@ -695,15 +602,12 @@ export default function ChessPage() {
             <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
 
                 {/* ═══ HEADER ═══ */}
-                <header className="shrink-0 h-14 border-b border-border bg-card flex items-center px-4 gap-3 z-50">
-                    <button onClick={() => setScreen("lobby")}
-                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group font-medium">
-                        <BsArrowLeft className="group-hover:-translate-x-0.5 transition-transform" />
-                        <span className="hidden sm:inline">Lobby</span>
-                    </button>
+                <header className="flex-shrink-0 h-14 border-b border-border bg-card flex items-center px-4 gap-3 z-50">
                     <div className="w-px h-5 bg-border" />
                     {/* <TbChessFilled className="text-xl text-primary" /> */}
-                    <span className="font-black text-base tracking-tight">Chess</span>
+                    <button onClick={() => router.replace("/dashboard")}>
+                        <span className="font-black text-base tracking-tight">Chess</span>
+                    </button>
 
                     {/* Status badge */}
                     <Badge variant="outline" className={cn(
@@ -735,8 +639,10 @@ export default function ChessPage() {
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <button onClick={() => setBoardFlipped(v => !v)}
-                                    className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all text-lg">
+                                <button
+                                    // disabled={true}
+                                    onClick={() => setBoardFlipped(v => !v)}
+                                    className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all text-lg bg-muted disabled:cursor-not-allowed disabled:opacity-50">
                                     <MdFlipCameraAndroid />
                                 </button>
                             </TooltipTrigger>
@@ -786,6 +692,9 @@ export default function ChessPage() {
                                 name="Black" subtitle="Computer" color="b"
                                 seconds={bTime} active={activeTimer === "b" && !isOver}
                                 capturedPieces={captured.w} isGameOver={isOver}
+                            // endGame={endGame}
+                            // activeTimer={activeTimer}
+                            // isOver={isOver}
                             />
 
                             {/* Board */}
@@ -819,7 +728,7 @@ export default function ChessPage() {
                                                     return (
                                                         <button key={p} onClick={() => handlePromo(p)}
                                                             className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center gap-1 bg-muted hover:bg-primary hover:text-primary-foreground transition-all border-2 border-border hover:border-primary hover:scale-105 active:scale-95">
-                                                            <span className="text-4xl">{UNICODE[`${c}${p.toUpperCase()}`]}</span>
+                                                            <img src={getPiece(p, c, pieceStyle)} alt={labels[p]} className="h-12 w-12 object-contain" />
                                                             <span className="text-xs font-semibold opacity-70">{labels[p]}</span>
                                                         </button>
                                                     );
@@ -835,6 +744,9 @@ export default function ChessPage() {
                                 name="White" subtitle={username} color="w"
                                 seconds={wTime} active={activeTimer === "w" && !isOver}
                                 capturedPieces={captured.b} isGameOver={isOver}
+                            // endGame={endGame}
+                            // activeTimer={activeTimer}
+                            // isOver={isOver}
                             />
 
                             {/* Controls bar */}
@@ -1050,6 +962,7 @@ export default function ChessPage() {
 
                 {/* ═══ RESULT DIALOG ═══ */}
                 <Dialog open={showResult} onOpenChange={setShowResult}>
+
                     <DialogContent className="sm:max-w-md">
                         <div className="flex flex-col items-center gap-6 py-4 text-center">
                             <div className="w-20 h-20 rounded-3xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center">

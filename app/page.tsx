@@ -7,9 +7,11 @@ import {
   Sparkles, Trophy, Zap, ChevronRight
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 const HomePage = () => {
-
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <Navbar />
@@ -38,7 +40,15 @@ const HomePage = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="bg-primary hover:scale-105 text-white px-10 py-5 rounded-2xl font-black transition-all flex items-center justify-center gap-3 shadow-xl shadow-primary/20">
+              <button
+                className={cn(
+                  "bg-primary text-white hover:scale-105 px-10 py-5 rounded-2xl font-black",
+                  "flex items-center justify-center gap-3",
+                  "transition-all shadow-xl shadow-primary/20"
+                )}
+                onClick={() => router.push("/dashboard")}
+
+              >
                 PLAY NOW
                 <Zap className="fill-current" size={20} />
               </button>
