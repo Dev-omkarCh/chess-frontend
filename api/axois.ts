@@ -50,7 +50,7 @@ apiClient.interceptors.response.use(
             try {
                 // Your backend endpoint that verifies the Refresh Cookie and sends a new Access Token
                 await axios.post(
-                    `${apiClient.defaults.baseURL}/api/v1/users/refresh-token`,
+                    `${apiClient.defaults.baseURL}/v1/users/refresh-token`,
                     {},
                     { withCredentials: true }
                 );
