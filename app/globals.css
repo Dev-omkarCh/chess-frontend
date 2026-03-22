@@ -21,6 +21,7 @@
   --color-accent: var(--accent);
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
+  --color-number: var(--number);
 }
 
 :root {
@@ -54,6 +55,8 @@
   /* A strong red for danger states */
   --danger: oklch(0.50 0.23 20);
   --danger-foreground: oklch(55.331% 0.20927 29.686);
+
+  --number: oklch(62.3% 0.214 259.815);
 }
 
 .dark {
@@ -89,4 +92,6 @@
 
   --danger: oklch(57.7% 0.245 27.325);
   --danger-foreground: oklch(0.98 0.02 20);
+
+  --number: oklch(62.3% 0.214 259.815);
 }
