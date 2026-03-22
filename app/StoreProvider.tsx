@@ -21,7 +21,7 @@ export default function StoreProvider({
         // Only fetch if we don't have a user yet (on initial load/refresh)
         const initAuth = async () => {
             try {
-                const response = await apiClient.get('/v1/users/current-user');
+                const response = await apiClient.get('/v1/users/credentials');
                 storeRef.current?.dispatch(setAuth(response.data.data));
             } catch (err) {
                 storeRef.current?.dispatch(clearAuth());

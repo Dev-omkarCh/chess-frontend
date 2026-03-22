@@ -29,6 +29,7 @@ import { useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { useLogout } from '@/hooks/useLogout';
 import LoadingSpinner from '../LoadingSpinner';
+import { ThemeToggle } from '../ThemeToggle';
 
 export default function UserAccountDropdown() {
 
@@ -62,7 +63,7 @@ export default function UserAccountDropdown() {
         className="w-[280px] mt-2 rounded-[24px] p-2 border-border/40 bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Header Section: User Info */}
-        <div className="px-4 py-4 mb-1">
+        <div className="px-4 py-4 mb-1 flex justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white font-medium">
               {user?.fullName?.charAt(0).toUpperCase() || "U"}
@@ -72,6 +73,7 @@ export default function UserAccountDropdown() {
               <span className="text-[12px] text-muted-foreground mt-1">{user?.email}</span>
             </div>
           </div>
+          <ThemeToggle classname='flex lg:hidden' />
         </div>
 
         <DropdownMenuSeparator className="bg-border/50 mx-2" />
@@ -86,7 +88,7 @@ export default function UserAccountDropdown() {
         {/* THEME SUB-MENU */}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger
-            className="flex items-center gap-3 px-4 py-2.5 rounded-full cursor-pointer outline-none focus:bg-muted transition-all text-foreground">
+            className="items-center gap-3 px-4 py-2.5 rounded-full cursor-pointer outline-none focus:bg-muted transition-all text-foreground hidden lg:flex">
             <span className="opacity-70">
               {theme === 'dark' ? <Moon size={18} /> : theme === 'light' ? <Sun size={18} /> : <Palette size={18} />}
             </span>
@@ -102,6 +104,7 @@ export default function UserAccountDropdown() {
             <ThemeOption label="System" value="system" active={theme === 'system'} onClick={() => setTheme('system')} icon={<Monitor size={18} />} />
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+
 
         <DropdownMenuSeparator className="bg-border/50 mx-2 mt-1" />
 
