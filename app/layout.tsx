@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import StoreProvider from "./StoreProvider";
 import { Toaster } from "react-hot-toast"
 import { SocketProvider } from "@/context/SocketProvider";
+import { NotificationToast } from "@/components/NotificationToast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,7 @@ export default function RootLayout({
               defaultTheme="system"
               enableSystem
             >
+              <NotificationToast />
 
               {/* <Navbar /> */}
               <TooltipProvider>

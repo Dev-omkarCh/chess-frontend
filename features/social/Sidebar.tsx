@@ -75,7 +75,7 @@ function Sidebar({
             </div>
 
             {/* My Profile — Discord-style footer strip */}
-            <Link
+            {/* <Link
                 href="/profile"
                 className={cn(
                     "shrink-0 flex items-center gap-3 px-4 py-3.5",
@@ -96,7 +96,7 @@ function Sidebar({
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <ChevronRight size={15} className="text-muted-foreground" />
                 </div>
-            </Link>
+            </Link> */}
         </aside>
     );
 }

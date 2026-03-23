@@ -1,6 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/redux/authSlice';
 import gameSlice from '@/redux/gameSlice';
+import notificationSlice from '@/redux/notificationSlice';
+import socialSlice from '@/redux/socialSlice';
 
 
 // makeStore ensures a fresh store is created per request
@@ -9,6 +11,8 @@ export const makeStore = () => {
         reducer: {
             auth: authReducer,
             game: gameSlice,
+            notification: notificationSlice,
+            social: socialSlice,
         },
         middleware: (getDefaultMiddleware) =>
             getDefaultMiddleware({

@@ -8,6 +8,8 @@ import { Bell, CheckCheck, Clock, Gamepad2, Info, Star, Swords, Trophy, UserPlus
 import Avatar from "./Avatar";
 import { Button } from "@/components/ui/button";
 import { Notification, NotificationType } from "@/types/social";
+import apiClient from "@/api/axois";
+import { useCallback, useEffect, useState } from "react";
 
 const NOTIF_ICON: Record<NotificationType, React.ReactNode> = {
     friend_request: <UserPlus size={15} />,
@@ -31,7 +33,25 @@ function NotificationDialog({
     notifications: Notification[];
     onMarkAllRead: () => void;
 }) {
+    const [notifs, setNotifs] = useState<any[]>([]);
     const unread = notifications.filter(n => !n.isRead).length;
+
+
+    const fetchNotifications = useCallback(async () => {
+        try {
+            const response = await apiClient.get('/v1/friends/requests/pending');
+            const data = await response.data.data;
+            console.log("Notifications: ", data);
+            setNotifs(data);
+        } catch (error) {
+            console.error("Error fetching notifications: ", error);
+        }
+    }, [apiClient]);
+
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
+
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[480px] bg-card border-border p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
@@ -42,9 +62,9 @@ function NotificationDialog({
                             <Bell size={15} className="text-primary" />
                         </div>
                         Notifications
-                        {unread > 0 && (
+                        {notifs.length > 0 && (
                             <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[11px] font-black">
-                                {unread} new
+                                {notifs.length} new
                             </span>
                         )}
                     </DialogTitle>

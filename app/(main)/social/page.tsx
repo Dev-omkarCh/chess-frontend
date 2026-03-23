@@ -7,6 +7,7 @@ import {
     Search, Trophy, Users, CheckCheck, Clock, X,
     ChevronRight, Loader2, Hash,
     Sparkles, Menu,
+    BrushCleaning,
 } from "lucide-react";
 import { cn, eloLabel } from "@/lib/utils";
 import apiClient from "@/api/axois";
@@ -18,10 +19,11 @@ import IconBtn from "@/features/social/IconBtn";
 import EloBadge from "@/features/social/EloBadge";
 import NotificationDialog from "@/features/social/NotificationDialog";
 import InboxDialog from "@/components/social/InboxDialog";
-import { Notification } from "@/types/social";
+import { Notification, SearchResult } from "@/types/social";
 import FriendRow from "@/features/social/FriendRow";
 import Sidebar from "@/features/social/Sidebar";
 import SearchCard from "@/features/social/SearchCard";
+import toast from "react-hot-toast";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -51,10 +53,6 @@ interface InboxMessage {
 }
 
 type FriendStatus = "friend" | "not_friend" | "request_sent" | "request_received";
-
-interface SearchResult extends UserProfile {
-    friendStatus: FriendStatus;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock data
@@ -89,31 +87,6 @@ const MOCK_INBOX: InboxMessage[] = [
     { _id: "m3", subject: "Support ticket resolved", body: "Ticket #4821 regarding ELO recalculation has been resolved. Your rating has been adjusted.", isRead: true, createdAt: "2025-01-18T16:30:00Z", category: "support" },
 ];
 
-const ALL_SEARCH_POOL: SearchResult[] = [
-    // already friends
-    { _id: "s0", username: "QueenGambit_X", fullName: "Priya Nair", elo: 2104, avatarLetter: "P", avatarColor: "bg-violet-500", isOnline: true, friendStatus: "friend" },
-    { _id: "s0b", username: "BlitzKing_11", fullName: "Omar Farooq", elo: 2200, avatarLetter: "O", avatarColor: "bg-orange-500", isOnline: true, friendStatus: "friend" },
-    // incoming request
-    { _id: "s1", username: "GrandMasterAli", fullName: "Ali Hassan", elo: 2340, avatarLetter: "A", avatarColor: "bg-indigo-500", isOnline: true, friendStatus: "request_received" },
-    { _id: "s1b", username: "NimzoIndian", fullName: "Leila Ahmadi", elo: 2189, avatarLetter: "L", avatarColor: "bg-cyan-500", isOnline: false, friendStatus: "request_received" },
-    // outgoing request
-    { _id: "s3", username: "CenterControl", fullName: "Carlos Rivera", elo: 1762, avatarLetter: "C", avatarColor: "bg-lime-500", isOnline: true, friendStatus: "request_sent" },
-    { _id: "s3b", username: "PinAndWin", fullName: "Fatima Al-Sayed", elo: 1840, avatarLetter: "F", avatarColor: "bg-rose-600", isOnline: false, friendStatus: "request_sent" },
-    // not friends
-    { _id: "s2", username: "RookSacrifice", fullName: "Yuki Tanaka", elo: 1988, avatarLetter: "Y", avatarColor: "bg-pink-500", isOnline: false, friendStatus: "not_friend" },
-    { _id: "s4", username: "ForkingNights", fullName: "Amara Diallo", elo: 2050, avatarLetter: "A", avatarColor: "bg-fuchsia-500", isOnline: false, friendStatus: "not_friend" },
-    { _id: "s5", username: "KingHunt3r", fullName: "Dimitri Volkov", elo: 2290, avatarLetter: "D", avatarColor: "bg-blue-600", isOnline: true, friendStatus: "not_friend" },
-    { _id: "s6", username: "PawnBreaker", fullName: "Sofia Chen", elo: 1530, avatarLetter: "S", avatarColor: "bg-teal-500", isOnline: true, friendStatus: "not_friend" },
-    { _id: "s7", username: "ZugzwangZara", fullName: "Zara Okonkwo", elo: 1875, avatarLetter: "Z", avatarColor: "bg-amber-600", isOnline: false, friendStatus: "not_friend" },
-    { _id: "s8", username: "OpeningTheory", fullName: "Magnus Eriksson", elo: 2455, avatarLetter: "M", avatarColor: "bg-emerald-600", isOnline: true, friendStatus: "not_friend" },
-    { _id: "s9", username: "SicilianDragon88", fullName: "Pradeep Nair", elo: 1699, avatarLetter: "P", avatarColor: "bg-sky-600", isOnline: false, friendStatus: "not_friend" },
-    { _id: "s10", username: "FianchettoFinn", fullName: "Finn Johansson", elo: 1920, avatarLetter: "F", avatarColor: "bg-purple-600", isOnline: true, friendStatus: "not_friend" },
-    { _id: "s11", username: "DoubledPawns", fullName: "Nadia Petrova", elo: 1455, avatarLetter: "N", avatarColor: "bg-red-500", isOnline: false, friendStatus: "not_friend" },
-    { _id: "s12", username: "ChessNinja47", fullName: "Hiroshi Tanaka", elo: 2110, avatarLetter: "H", avatarColor: "bg-yellow-600", isOnline: true, friendStatus: "not_friend" },
-];
-
-// Shown by default before user types (top 6 suggested)
-const MOCK_SEARCH_RESULTS: SearchResult[] = ALL_SEARCH_POOL.slice(0, 6);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -161,54 +134,62 @@ function MainContent({
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500); // Using your hook
 
-    // Search with debounce — searches ALL_SEARCH_POOL
-    // const handleSearch = useCallback((value: string) => {
-    //     setQuery(value);
-    //     if (value.trim().length < 2) {
-    //         // Show suggested players when empty
-    //         setSearchResults(
-    //             MOCK_SEARCH_RESULTS.map(u => ({ ...u, friendStatus: friendStatuses[u._id] ?? u.friendStatus }))
-    //         );
-    //         setHasSearched(false);
-    //         setIsSearching(false);
-    //         return;
-    //     }
-    //     setIsSearching(true);
-    //     debounceRef.current = setTimeout(async () => {
-    //         try {
-    //             /**
-    //              * TODO: Replace with real API call:
-    //              * const res = await fetch(`/api/users/search?q=${encodeURIComponent(value)}`, { credentials: "include" });
-    //              * const data: SearchResult[] = await res.json();
-    //              * setSearchResults(data);
-    //              */
-    //             await new Promise(r => setTimeout(r, 280));
-    //             const q = value.toLowerCase();
-    //             const filtered = ALL_SEARCH_POOL.filter(u =>
-    //                 u.username.toLowerCase().includes(q) ||
-    //                 u.fullName.toLowerCase().includes(q)
-    //             );
-    //             setSearchResults(filtered.map(u => ({ ...u, friendStatus: friendStatuses[u._id] ?? u.friendStatus })));
-    //             setHasSearched(true);
-    //         } finally {
-    //             setIsSearching(false);
-    //         }
-    //     }, 280);
-    // }, [friendStatuses]);
+    const sendFriendRequest = async (recipientId: string) => {
+        try {
+            await apiClient.post("/v1/friends/request", {
+                recipientId
+            });
+            toast.success("Friend Request Send");
+        } catch (error) {
+            console.log("Error Sending Friend Request", error);
+        }
 
-    const handleToggleFriend = useCallback((user: any, friendStatus: string) => {
-        const current = friendStatus;
+    };
 
-        console.log(current);
+    const accpetFriendRequest = async (senderId: string) => {
+        try {
+            await apiClient.post(`/v1/friends/request/${senderId}`, {
+                senderId
+            });
+            toast.success("Friend Request Accepted");
+        } catch (error) {
+            console.log("Error Accepting Friend Request", error);
+        }
+    };
+
+    const removeFriend = async (friendId: string) => {
+        try {
+            await apiClient.post("/v1/friends/remove", {
+                friendId
+            });
+            toast.success("Friend Removed");
+        }
+        catch (error) {
+            console.log("Error Removing Friend", error);
+        }
+    };
+
+
+    const handleToggleFriend = useCallback((user: SearchResult) => {
+        const friendshipStatus = user.status || "not_friend";
+
+        console.log(friendshipStatus);
         const next: FriendStatus =
-            current === "friend" ? "not_friend" :
-                current === "not_friend" ? "request_sent" :
-                    current === "request_received" ? "friend" :
+            friendshipStatus === "friend" ? "not_friend" :
+                friendshipStatus === "not_friend" ? "request_sent" :
+                    friendshipStatus === "request_received" ? "friend" :
                         "not_friend";
-        setFriendStatuses((p: any) => ({ ...p, [user._id]: next }));
-        setSearchResults((p: any) => p.map((u: any) => u._id === user._id ? { ...u, friendStatus: next } : u));
-        // setFriends((p: any) => p.map((f: any) => f._id === user._id ? { ...f, status: next } : f));
-        console.log(searchResults);
+        setSearchResults((p: any) => p.map((u: any) => u._id === user._id ? { ...u, status: next } : u));
+
+        if (friendshipStatus === "request_received") {
+            accpetFriendRequest(user._id);
+        }
+        else if (friendshipStatus === "not_friend") {
+            sendFriendRequest(user._id);
+        }
+        else if (friendshipStatus === "friend") {
+            removeFriend(user._id);
+        }
     }, [searchResults]);
 
     const handleMarkAllRead = useCallback(() => {
@@ -221,9 +202,7 @@ function MainContent({
         setHasSearched(false);
         setIsSearching(false);
         // Restore suggested list
-        setSearchResults(
-            MOCK_SEARCH_RESULTS.map(u => ({ ...u, friendStatus: friendStatuses[u._id] ?? u.friendStatus }))
-        );
+        setSearchResults([]);
         inputRef.current?.focus();
     };
 
@@ -273,6 +252,21 @@ function MainContent({
                         label="Inbox"
                         badge={unreadInbox}
                         onClick={() => setInboxOpen(true)}
+                    />
+                    <IconBtn
+                        icon={<BrushCleaning size={18} />}
+                        label="Clear"
+                        onClick={() => {
+                            const clearFriendship = async () => {
+                                try {
+                                    await apiClient.get("/v1/friends/clear");
+                                    toast.success("Clear Friendship Schema");
+                                } catch (error) {
+                                    console.log("Error while clearing Friendship Schema : ", error);
+                                }
+                            }
+                            clearFriendship();
+                        }}
                     />
                 </div>
             </div>
@@ -374,7 +368,7 @@ function MainContent({
                                     <div key={user._id} style={{ animationDelay: `${i * 45}ms` }} className="bc-slide-up">
                                         <SearchCard
                                             friends={friends}
-                                            user={{ ...user, friendStatus: friendStatuses[user._id] ?? user.friendStatus }}
+                                            user={user}
                                             onToggleFriend={handleToggleFriend}
                                         />
                                     </div>
@@ -437,7 +431,7 @@ export default function SocialPage() {
     const getOnlineFriends = (socket: Socket) => {
         socket.emit('social:get-online-friends');
         socket.on('social:online-friends-list', (data) => {
-            console.log("Online Friends : ", data);
+            console.log("[Socket] Online Friends : ", data);
         });
     }
 

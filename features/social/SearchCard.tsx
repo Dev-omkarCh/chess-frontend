@@ -11,21 +11,15 @@ import EloBadge from "./EloBadge";
 interface SearchCardProps {
     user: SearchResult;
     friends: any[];
-    onToggleFriend: (user: SearchResult, friendStatus: string) => void;
+    onToggleFriend: (user: SearchResult) => void;
 }
 
 function SearchCard({ user, friends, onToggleFriend }: SearchCardProps) {
 
     const { label, color } = eloLabel(user.elo);
 
-    const friend = friends.find(f => f._id === user._id);
-    const friendStatus = friend ?
-        friend?.status === "pending" ?
-            "request_sent" :
-            friend?.status === "accepted" ?
-                "friend" :
-                "request_received" :
-        "not_friend";
+    // const friend = friends.find(f => f._id === user._id);
+    const friendStatus: FriendStatus = user.status || "not_friend";
 
     const btnConfig: Record<FriendStatus, { label: string; icon: React.ReactNode; cls: string }> = {
         not_friend: { label: "Add Friend", icon: <UserPlus size={14} />, cls: "bg-primary text-primary-foreground hover:opacity-90 shadow-md shadow-primary/20" },
@@ -43,6 +37,8 @@ function SearchCard({ user, friends, onToggleFriend }: SearchCardProps) {
         return colors[index];
     };
     const avatarColor = getRandomColor();
+
+    console.log(friendStatus);
 
     return (
         <div className={cn(
@@ -75,8 +71,8 @@ function SearchCard({ user, friends, onToggleFriend }: SearchCardProps) {
 
             <div className="flex items-center gap-2 shrink-0">
                 <button
-                    onClick={() => onToggleFriend(user, friendStatus)}
-                    disabled={friendStatus === "request_sent" || friendStatus === "request_received"}
+                    onClick={() => onToggleFriend(user)}
+                    disabled={friendStatus === "request_sent"}
                     className={cn(
                         "flex items-center gap-2 h-9 px-4 rounded-xl text-[13px] font-semibold",
                         "transition-all duration-200 active:scale-95",
