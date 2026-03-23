@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import apiClient from "@/api/axois";
 import { useSocket } from "@/context/SocketProvider";
 import { Socket } from "socket.io-client";
+import { useDebounce } from "@/lib/useDebounce";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -676,9 +678,10 @@ function Sidebar({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SearchCard({
-    user, onToggleFriend,
+    user, friends, onToggleFriend,
 }: {
     user: SearchResult;
+    friends: any[];
     /**
      * TODO API routes per status:
      * not_friend       → POST   /api/friends/request { to: user._id }
@@ -686,9 +689,12 @@ function SearchCard({
      * friend           → DELETE /api/friends/remove  { friendId: user._id }
      * request_received → POST   /api/friends/accept  { fromUserId: user._id }
      */
-    onToggleFriend: (user: SearchResult) => void;
+    onToggleFriend: (user: SearchResult, friendStatus: string) => void;
 }) {
     const { label, color } = eloLabel(user.elo);
+
+    const friend = friends.find(f => f._id === user._id);
+    const friendStatus = friend ? friend?.status === "pending" ? "request_sent" : friend?.status === "accepted" ? "friend" : "request_received" : "not_friend";
 
     const btnConfig: Record<FriendStatus, { label: string; icon: React.ReactNode; cls: string }> = {
         not_friend: { label: "Add Friend", icon: <UserPlus size={14} />, cls: "bg-primary text-primary-foreground hover:opacity-90 shadow-md shadow-primary/20" },
@@ -696,7 +702,16 @@ function SearchCard({
         friend: { label: "Remove", icon: <UserMinus size={14} />, cls: "border border-danger/40 text-danger-foreground hover:bg-danger hover:text-white hover:border-danger" },
         request_received: { label: "Accept", icon: <CheckCheck size={14} />, cls: "bg-emerald-600 text-white hover:bg-emerald-500 shadow-md shadow-emerald-500/20" },
     };
-    const btn = btnConfig[user.friendStatus];
+    const btn = btnConfig[friendStatus];
+
+    const isOnline = friends.some(f => f._id === user._id && f.isOnline);
+
+    const getRandomColor = () => {
+        const colors = ["bg-red-500", "bg-green-500", "bg-blue-500", "bg-yellow-500", "bg-purple-500", "bg-pink-500", "bg-orange-500", "bg-indigo-500", "bg-teal-500", "bg-cyan-500"];
+        const index = Math.floor(Math.random() * colors.length);
+        return colors[index];
+    };
+    const avatarColor = getRandomColor();
 
     return (
         <div className={cn(
@@ -709,12 +724,12 @@ function SearchCard({
             {/* Subtle left accent on hover */}
             <div className="absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full bg-primary scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center" />
 
-            <Avatar letter={user.avatarLetter} color={user.avatarColor} size="md" online={user.isOnline} />
+            <Avatar letter={user.username[0]} color={avatarColor} size="md" online={isOnline} />
 
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                     <p className="text-[15px] font-bold text-foreground leading-none">{user.username}</p>
-                    {user.isOnline && (
+                    {isOnline && (
                         <span className="text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/15">
                             Online
                         </span>
@@ -729,8 +744,8 @@ function SearchCard({
 
             <div className="flex items-center gap-2 flex-shrink-0">
                 <button
-                    onClick={() => onToggleFriend(user)}
-                    disabled={user.friendStatus === "request_sent"}
+                    onClick={() => onToggleFriend(user, friendStatus)}
+                    disabled={friendStatus === "request_sent" || friendStatus === "request_received"}
                     className={cn(
                         "flex items-center gap-2 h-9 px-4 rounded-xl text-[13px] font-semibold",
                         "transition-all duration-200 active:scale-95",
@@ -760,12 +775,24 @@ function SearchCard({
 // Main content
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface UserProfile {
+    _id: string;
+    username: string;
+    fullName: string;
+    elo: number;
+    avatarLetter: string;
+    avatarColor: string;
+    isOnline: boolean;
+}
+
 function MainContent({
     notifications: initNotifs,
     inboxMessages,
+    friends
 }: {
     notifications: Notification[];
     inboxMessages: InboxMessage[];
+    friends: any[];
 }) {
     const [notifOpen, setNotifOpen] = useState(false);
     const [inboxOpen, setInboxOpen] = useState(false);
@@ -773,9 +800,7 @@ function MainContent({
     const [messages] = useState(inboxMessages);
     const [query, setQuery] = useState("");
     const [isSearching, setIsSearching] = useState(false);
-    const [searchResults, setSearchResults] = useState<SearchResult[]>(() =>
-        MOCK_SEARCH_RESULTS.map(u => ({ ...u }))
-    );
+    const [searchResults, setSearchResults] = useState<any[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
     const [friendStatuses, setFriendStatuses] = useState<Record<string, FriendStatus>>(
         () => Object.fromEntries(MOCK_SEARCH_RESULTS.map(u => [u._id, u.friendStatus]))
@@ -786,45 +811,48 @@ function MainContent({
     const unreadNotif = notifs.filter(n => !n.isRead).length;
     const unreadInbox = messages.filter(m => !m.isRead).length;
 
-    // Search with debounce — searches ALL_SEARCH_POOL
-    const handleSearch = useCallback((value: string) => {
-        setQuery(value);
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        if (value.trim().length < 2) {
-            // Show suggested players when empty
-            setSearchResults(
-                MOCK_SEARCH_RESULTS.map(u => ({ ...u, friendStatus: friendStatuses[u._id] ?? u.friendStatus }))
-            );
-            setHasSearched(false);
-            setIsSearching(false);
-            return;
-        }
-        setIsSearching(true);
-        debounceRef.current = setTimeout(async () => {
-            try {
-                /**
-                 * TODO: Replace with real API call:
-                 * const res = await fetch(`/api/users/search?q=${encodeURIComponent(value)}`, { credentials: "include" });
-                 * const data: SearchResult[] = await res.json();
-                 * setSearchResults(data);
-                 */
-                await new Promise(r => setTimeout(r, 280));
-                const q = value.toLowerCase();
-                const filtered = ALL_SEARCH_POOL.filter(u =>
-                    u.username.toLowerCase().includes(q) ||
-                    u.fullName.toLowerCase().includes(q)
-                );
-                setSearchResults(filtered.map(u => ({ ...u, friendStatus: friendStatuses[u._id] ?? u.friendStatus })));
-                setHasSearched(true);
-            } finally {
-                setIsSearching(false);
-            }
-        }, 280);
-    }, [friendStatuses]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const debouncedSearch = useDebounce(searchTerm, 500); // Using your hook
 
-    const handleToggleFriend = useCallback((user: SearchResult) => {
-        /** TODO: see SearchCard jsdoc for API routes per status */
-        const current = friendStatuses[user._id] ?? user.friendStatus;
+    // Search with debounce — searches ALL_SEARCH_POOL
+    // const handleSearch = useCallback((value: string) => {
+    //     setQuery(value);
+    //     if (value.trim().length < 2) {
+    //         // Show suggested players when empty
+    //         setSearchResults(
+    //             MOCK_SEARCH_RESULTS.map(u => ({ ...u, friendStatus: friendStatuses[u._id] ?? u.friendStatus }))
+    //         );
+    //         setHasSearched(false);
+    //         setIsSearching(false);
+    //         return;
+    //     }
+    //     setIsSearching(true);
+    //     debounceRef.current = setTimeout(async () => {
+    //         try {
+    //             /**
+    //              * TODO: Replace with real API call:
+    //              * const res = await fetch(`/api/users/search?q=${encodeURIComponent(value)}`, { credentials: "include" });
+    //              * const data: SearchResult[] = await res.json();
+    //              * setSearchResults(data);
+    //              */
+    //             await new Promise(r => setTimeout(r, 280));
+    //             const q = value.toLowerCase();
+    //             const filtered = ALL_SEARCH_POOL.filter(u =>
+    //                 u.username.toLowerCase().includes(q) ||
+    //                 u.fullName.toLowerCase().includes(q)
+    //             );
+    //             setSearchResults(filtered.map(u => ({ ...u, friendStatus: friendStatuses[u._id] ?? u.friendStatus })));
+    //             setHasSearched(true);
+    //         } finally {
+    //             setIsSearching(false);
+    //         }
+    //     }, 280);
+    // }, [friendStatuses]);
+
+    const handleToggleFriend = useCallback((user: any, friendStatus: string) => {
+        const current = friendStatus;
+
+        console.log(current);
         const next: FriendStatus =
             current === "friend" ? "not_friend" :
                 current === "not_friend" ? "request_sent" :
@@ -832,7 +860,8 @@ function MainContent({
                         "not_friend";
         setFriendStatuses(p => ({ ...p, [user._id]: next }));
         setSearchResults(p => p.map(u => u._id === user._id ? { ...u, friendStatus: next } : u));
-    }, [friendStatuses]);
+        console.log(searchResults);
+    }, [searchResults]);
 
     const handleMarkAllRead = useCallback(() => {
         /** TODO: PATCH /api/notifications/mark-all-read */
@@ -849,6 +878,24 @@ function MainContent({
         );
         inputRef.current?.focus();
     };
+
+    const fetchPlayers = async (query: string) => {
+        try {
+            const response = await apiClient.get(`/v1/users/search?query=${query}`);
+            const players = response.data?.data;
+            setSearchResults(players);
+
+            console.log("players : ", players);
+        } catch (error) {
+            console.log("Error Fetching Friends", error);
+        }
+    };
+
+    useEffect(() => {
+        if (debouncedSearch) {
+            fetchPlayers(debouncedSearch);
+        }
+    }, [debouncedSearch]);
 
     return (
         <div className="flex flex-col h-full bg-background">
@@ -902,8 +949,8 @@ function MainContent({
                             <input
                                 ref={inputRef}
                                 type="text"
-                                value={query}
-                                onChange={e => handleSearch(e.target.value)}
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
                                 placeholder="Search by username or name…"
                                 className={cn(
                                     "w-full h-12 pl-11 pr-11 rounded-2xl text-[15px]",
@@ -952,6 +999,7 @@ function MainContent({
                                         <div key={user._id} style={{ animationDelay: `${i * 55}ms` }} className="bc-slide-up">
                                             <SearchCard
                                                 user={{ ...user, friendStatus: friendStatuses[user._id] ?? user.friendStatus }}
+                                                friends={friends}
                                                 onToggleFriend={handleToggleFriend}
                                             />
                                         </div>
@@ -977,6 +1025,7 @@ function MainContent({
                                 {searchResults.map((user, i) => (
                                     <div key={user._id} style={{ animationDelay: `${i * 45}ms` }} className="bc-slide-up">
                                         <SearchCard
+                                            friends={friends}
                                             user={{ ...user, friendStatus: friendStatuses[user._id] ?? user.friendStatus }}
                                             onToggleFriend={handleToggleFriend}
                                         />
@@ -1030,7 +1079,7 @@ export default function SocialPage() {
 
     // In production: const { user: me } = useAppSelector(state => state.auth)
     const me = MOCK_ME;
-    const [friends, setFriends] = useState<Friend[]>([]);
+    const [friends, setFriends] = useState<any[]>([]);
     const { socket } = useSocket();
 
     const handleGameRequest = useCallback((friendId: string) => {
@@ -1040,10 +1089,9 @@ export default function SocialPage() {
 
     const fetchFriends = async () => {
         try {
-            const response = await apiClient.get("/v1/social/friends");
-            const friends = response.data.friends;
-
-            console.log("friends : ", friends);
+            const response = await apiClient.get("/v1/friends");
+            const friends = response.data.data;
+            setFriends(friends);
         } catch (error) {
             console.log("Error Fetching Friends", error);
         }
@@ -1169,6 +1217,7 @@ export default function SocialPage() {
                     <MainContent
                         notifications={MOCK_NOTIFICATIONS}
                         inboxMessages={MOCK_INBOX}
+                        friends={friends}
                     />
                 </div>
             </div>
