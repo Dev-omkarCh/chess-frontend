@@ -15,7 +15,7 @@ interface IconBtnProps {
 }
 
 function IconBtn({ icon, label, onClick, badge, variant = "default", danger = false }: IconBtnProps) {
-    const [hovered, setHovered] = useState(false);
+    const [, setHovered] = useState(false);
     return (
         <button
             onClick={onClick}

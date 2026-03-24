@@ -25,7 +25,7 @@ function Avatar({ letter, color, size = "md", online, pulse = false }: AvatarPro
         xs: "w-2 h-2", sm: "w-2.5 h-2.5", md: "w-3 h-3", lg: "w-3.5 h-3.5", xl: "w-4 h-4",
     };
     return (
-        <div className="relative shrink-0">
+        <div className="relative shrink-0" suppressHydrationWarning>
             <div className={cn(
                 "rounded-full flex items-center justify-center font-black text-white select-none ring-2 ring-background shadow-lg",
                 dims[size], color,

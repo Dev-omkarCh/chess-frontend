@@ -7,7 +7,6 @@ import { ChevronRight, Link, Users } from "lucide-react";
 import FriendRow from "./FriendRow";
 import { cn, eloLabel } from "@/lib/utils";
 import EloBadge from "./EloBadge";
-import Avatar from "./Avatar";
 import { User } from "@/types/auth";
 
 function Sidebar({

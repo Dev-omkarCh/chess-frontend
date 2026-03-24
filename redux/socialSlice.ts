@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { IFriendship, FriendStatus } from '@/types/social';
+import { IFriendship } from '@/types/social';
 import axios from 'axios';
 
 interface SocialState {
