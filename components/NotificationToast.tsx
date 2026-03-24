@@ -16,7 +16,7 @@ export const NotificationToast = () => {
         <div className="fixed top-4 right-4 z-50 pointer-events-none">
             <AnimatePresence mode="wait">
                 <motion.div
-                    key={current.id}
+                    key={current._id}
                     initial={{ opacity: 0, x: 100, scale: 0.9 }}
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     exit={{ opacity: 0, x: 20, scale: 0.95 }}
@@ -28,7 +28,7 @@ export const NotificationToast = () => {
                             <p className="text-sm text-muted-foreground">{current.message}</p>
                         </div>
                         <button
-                            onClick={() => dispatch(dismissNotification(current.id))}
+                            onClick={() => dispatch(dismissNotification(current._id))}
                             className="text-muted-foreground hover:text-foreground"
                         >
                             ✕

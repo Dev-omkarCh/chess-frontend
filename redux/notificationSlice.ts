@@ -19,7 +19,7 @@ const notificationSlice = createSlice({
         },
         // Dismisses a specific notification
         dismissNotification: (state, action: PayloadAction<string>) => {
-            state.toastStack = state.toastStack.filter(n => n.id !== action.payload);
+            state.toastStack = state.toastStack.filter(n => n._id !== action.payload);
         },
         // Clear all (useful for logout)
         clearAllNotifications: (state) => {
