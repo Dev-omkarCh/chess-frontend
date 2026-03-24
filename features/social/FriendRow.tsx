@@ -9,7 +9,7 @@ import Avatar from "./Avatar";
 import { CheckCheck, Eye, Link, Swords, Trophy } from "lucide-react";
 
 function FriendRow({
-    friend, onGameRequest,
+    friend, onGameRequest
 }: {
     friend: Friend;
     onGameRequest: (id: string) => void;
@@ -33,13 +33,14 @@ function FriendRow({
                 "transition-all duration-200 hover:bg-accent",
                 "active:scale-[0.98]",
             )}
+            key={friend._id}
         >
             {/* Active indicator pill (Discord style) */}
             {friend.isOnline && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             )}
 
-            <Avatar letter={friend.avatarLetter} color={friend.avatarColor} size="sm" online={friend.isOnline} />
+            <Avatar letter={friend?.username?.charAt(0)} color={"bg-green-500"} size="sm" online={friend?.isOnline} />
 
             <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-semibold text-foreground truncate leading-tight">{friend.username}</p>

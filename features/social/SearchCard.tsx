@@ -76,11 +76,11 @@ function SearchCard({ user, friends, onToggleFriend }: SearchCardProps) {
                     className={cn(
                         "flex items-center gap-2 h-9 px-4 rounded-xl text-[13px] font-semibold",
                         "transition-all duration-200 active:scale-95",
-                        btn.cls,
+                        btn?.cls,
                     )}
                 >
-                    {btn.icon}
-                    <span className="hidden sm:inline">{btn.label}</span>
+                    {btn?.icon}
+                    <span className="hidden sm:inline">{btn?.label}</span>
                 </button>
                 <Link href={`/profile/${user._id}`}>
                     <button className={cn(

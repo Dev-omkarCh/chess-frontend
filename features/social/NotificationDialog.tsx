@@ -4,57 +4,53 @@
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn, relativeTime } from "@/lib/utils";
-import { Bell, CheckCheck, Clock, Gamepad2, Info, Star, Swords, Trophy, UserPlus } from "lucide-react";
+import { Bell, CheckCheck, Clock, Gamepad2, Info, Swords, UserPlus } from "lucide-react";
 import Avatar from "./Avatar";
 import { Button } from "@/components/ui/button";
-import { Notification, NotificationType } from "@/types/social";
+import { Friend, INotification } from "@/types/social";
 import apiClient from "@/api/axois";
-import { useCallback, useEffect, useState } from "react";
 
-const NOTIF_ICON: Record<NotificationType, React.ReactNode> = {
-    friend_request: <UserPlus size={15} />,
-    game_invite: <Swords size={15} />,
-    game_result: <Trophy size={15} />,
-    system: <Info size={15} />,
-    achievement: <Star size={15} />,
+
+const NOTIF_ICON: Record<INotification['type'], React.ReactNode> = {
+    FRIEND_REQUEST: <UserPlus size={15} />,
+    GAME_INVITE: <Swords size={15} />,
+    SYSTEM_ALERT: <Info size={15} />,
 };
-const NOTIF_COLOR: Record<NotificationType, string> = {
-    friend_request: "bg-primary/15 text-primary border-primary/20",
-    game_invite: "bg-amber-500/15 text-amber-400 border-amber-500/20",
-    game_result: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
-    system: "bg-muted text-muted-foreground border-border",
-    achievement: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20",
+
+const NOTIF_COLOR: Record<INotification['type'], string> = {
+    FRIEND_REQUEST: "bg-primary/15 text-primary border-primary/20",
+    GAME_INVITE: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+    SYSTEM_ALERT: "bg-muted text-muted-foreground border-border",
 };
 
 function NotificationDialog({
-    open, onClose, notifications, onMarkAllRead,
+    open, onClose, notifications, onMarkAllRead, addNewFriend
 }: {
     open: boolean; onClose: () => void;
-    notifications: Notification[];
+    notifications: INotification[];
     onMarkAllRead: () => void;
+    addNewFriend: (friend: Friend) => void;
 }) {
-    const [notifs, setNotifs] = useState<any[]>([]);
     const unread = notifications.filter(n => !n.isRead).length;
 
-
-    const fetchNotifications = useCallback(async () => {
+    const acceptFriendRequest = async (id: string) => {
         try {
-            const response = await apiClient.get('/v1/friends/requests/pending');
-            const data = await response.data.data;
-            console.log("Notifications: ", data);
-            setNotifs(data);
-        } catch (error) {
-            console.error("Error fetching notifications: ", error);
-        }
-    }, [apiClient]);
+            const response = await apiClient.patch(`/v1/friends/requests/${id}`, {
+                status: "accepted"
+            });
 
-    useEffect(() => {
-        fetchNotifications();
-    }, []);
+            const friend = response.data.data as Friend;
+            addNewFriend(friend);
+            console.log("Friend request accepted:", friend);
+        } catch (error) {
+            console.log("Error accepting friend request:", error);
+        }
+
+    };
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[480px] bg-card border-border p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
+            <DialogContent className="sm:max-w-[480px] w-[95vw] max-w-[95vw] sm:w-full bg-card border-border p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/80 backdrop-blur-sm">
                     <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2.5">
@@ -62,9 +58,9 @@ function NotificationDialog({
                             <Bell size={15} className="text-primary" />
                         </div>
                         Notifications
-                        {notifs.length > 0 && (
+                        {unread > 0 && (
                             <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[11px] font-black">
-                                {notifs.length} new
+                                {unread} new
                             </span>
                         )}
                     </DialogTitle>
@@ -97,9 +93,9 @@ function NotificationDialog({
                             )}
                             style={{ animationDelay: `${idx * 40}ms` }}
                         >
-                            {/* Icon / avatar */}
-                            {n.fromUser ? (
-                                <Avatar letter={n.fromUser.avatarLetter} color={n.fromUser.avatarColor} size="sm" />
+                            {/* Icon / avatar logic updated for sender */}
+                            {n.sender ? (
+                                <Avatar letter={n.sender.username.charAt(0)} color={"bg-blue-500"} size="sm" />
                             ) : (
                                 <div className={cn(
                                     "w-9 h-9 rounded-xl flex items-center justify-center border shrink-0",
@@ -115,34 +111,37 @@ function NotificationDialog({
                                         "text-[15px] font-semibold leading-tight",
                                         !n.isRead ? "text-foreground" : "text-muted-foreground"
                                     )}>
-                                        {n.title}
+                                        {/* Using sender name or a default title based on type */}
+                                        {n.sender?.username || (n.type === 'SYSTEM_ALERT' ? 'System Update' : 'Notification')}
                                     </p>
                                     {!n.isRead && (
                                         <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5 shadow-sm shadow-primary/50" />
                                     )}
                                 </div>
-                                <p className="text-sm text-muted-foreground leading-relaxed">{n.body}</p>
+                                {/* Updated message and timestamp fields */}
+                                <p className="text-sm text-muted-foreground leading-relaxed">{n.message}</p>
                                 <div className="flex items-center gap-1.5 mt-2">
                                     <Clock size={11} className="text-muted-foreground/40" />
-                                    <span className="text-xs text-muted-foreground/50">{relativeTime(n.createdAt)}</span>
+                                    <span className="text-xs text-muted-foreground/50">{relativeTime(n.timestamp)}</span>
                                 </div>
 
-                                {/* Action buttons */}
-                                {n.type === "friend_request" && !n.isRead && (
+                                {/* Action buttons updated for interface types */}
+                                {n.type === "FRIEND_REQUEST" && !n.isRead && (
                                     <div className="flex gap-2 mt-3">
-                                        {/* TODO: POST /api/friends/accept { fromUserId: n.fromUser?._id } */}
-                                        <Button size="sm" className="h-8 px-4 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20 active:scale-95 transition-all">
+                                        <Button
+                                            size="sm"
+                                            className="h-8 px-4 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 rounded-xl shadow-md shadow-primary/20 active:scale-95 transition-all"
+                                            onClick={() => acceptFriendRequest(n._id)}
+                                        >
                                             Accept
                                         </Button>
-                                        {/* TODO: DELETE /api/friends/request { fromUserId: n.fromUser?._id } */}
                                         <Button size="sm" variant="outline" className="h-8 px-4 text-xs font-semibold border-border hover:bg-accent rounded-xl active:scale-95 transition-all">
                                             Decline
                                         </Button>
                                     </div>
                                 )}
-                                {n.type === "game_invite" && !n.isRead && (
+                                {n.type === "GAME_INVITE" && !n.isRead && (
                                     <div className="flex gap-2 mt-3">
-                                        {/* TODO: POST /api/game-requests/accept { notifId: n._id } */}
                                         <Button size="sm" className="h-8 px-4 text-xs font-semibold bg-amber-500 text-white hover:bg-amber-400 rounded-xl gap-1.5 shadow-md shadow-amber-500/20 active:scale-95 transition-all">
                                             <Gamepad2 size={12} /> Join Game
                                         </Button>

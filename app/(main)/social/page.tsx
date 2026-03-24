@@ -19,29 +19,18 @@ import IconBtn from "@/features/social/IconBtn";
 import EloBadge from "@/features/social/EloBadge";
 import NotificationDialog from "@/features/social/NotificationDialog";
 import InboxDialog from "@/components/social/InboxDialog";
-import { Notification, SearchResult } from "@/types/social";
+import { Friend, INotification, Notification, SearchResult } from "@/types/social";
 import FriendRow from "@/features/social/FriendRow";
 import Sidebar from "@/features/social/Sidebar";
 import SearchCard from "@/features/social/SearchCard";
 import toast from "react-hot-toast";
+import { useAppSelector } from "@/lib/hooks";
+import { RootState } from "@/lib/store";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface UserProfile {
-    _id: string;
-    username: string;
-    fullName: string;
-    elo: number;
-    avatarLetter: string;
-    avatarColor: string;
-    isOnline: boolean;
-}
-
-interface Friend extends UserProfile {
-    friendSince: string;
-}
 
 interface InboxMessage {
     _id: string;
@@ -53,33 +42,6 @@ interface InboxMessage {
 }
 
 type FriendStatus = "friend" | "not_friend" | "request_sent" | "request_received";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Mock data
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MOCK_ME: UserProfile = {
-    _id: "me_001", username: "chessMaster99", fullName: "Arjun Sharma",
-    elo: 1847, avatarLetter: "A", avatarColor: "bg-primary", isOnline: true,
-};
-
-const MOCK_FRIENDS: Friend[] = [
-    { _id: "f1", username: "QueenGambit_X", fullName: "Priya Nair", elo: 2104, avatarLetter: "P", avatarColor: "bg-violet-500", isOnline: true, friendSince: "2024-01-15" },
-    { _id: "f2", username: "KnightRider_22", fullName: "Dev Kapoor", elo: 1923, avatarLetter: "D", avatarColor: "bg-emerald-500", isOnline: true, friendSince: "2024-03-02" },
-    { _id: "f3", username: "SilentBishop", fullName: "Meera Joshi", elo: 1755, avatarLetter: "M", avatarColor: "bg-amber-500", isOnline: false, friendSince: "2024-05-20" },
-    { _id: "f4", username: "PawnStorm99", fullName: "Rahul Gupta", elo: 1680, avatarLetter: "R", avatarColor: "bg-rose-500", isOnline: false, friendSince: "2024-06-11" },
-    { _id: "f5", username: "EndgameElite", fullName: "Sana Sheikh", elo: 2011, avatarLetter: "S", avatarColor: "bg-sky-500", isOnline: true, friendSince: "2024-07-03" },
-    { _id: "f6", username: "TacticsWizard", fullName: "Kiran Mehta", elo: 1899, avatarLetter: "K", avatarColor: "bg-teal-500", isOnline: false, friendSince: "2024-08-14" },
-    { _id: "f7", username: "BlitzKing_11", fullName: "Omar Farooq", elo: 2200, avatarLetter: "O", avatarColor: "bg-orange-500", isOnline: true, friendSince: "2024-09-01" },
-];
-
-const MOCK_NOTIFICATIONS: Notification[] = [
-    { _id: "n1", type: "friend_request", title: "New Friend Request", body: "GrandMasterAli wants to be your friend.", isRead: false, createdAt: "2025-01-20T10:30:00Z", fromUser: { _id: "u99", username: "GrandMasterAli", avatarLetter: "G", avatarColor: "bg-indigo-500" } },
-    { _id: "n2", type: "game_invite", title: "Game Invite", body: "QueenGambit_X challenged you to a 5-min Blitz!", isRead: false, createdAt: "2025-01-20T09:15:00Z", fromUser: { _id: "f1", username: "QueenGambit_X", avatarLetter: "P", avatarColor: "bg-violet-500" } },
-    { _id: "n3", type: "game_result", title: "Game Result", body: "You won vs KnightRider_22. +18 ELO", isRead: true, createdAt: "2025-01-19T22:00:00Z" },
-    { _id: "n4", type: "achievement", title: "Achievement Unlocked 🏆", body: "You reached 1800 ELO! Milestone: Expert.", isRead: true, createdAt: "2025-01-19T18:45:00Z" },
-    { _id: "n5", type: "system", title: "System Notice", body: "Scheduled maintenance on Jan 22, 02:00 UTC.", isRead: true, createdAt: "2025-01-18T12:00:00Z" },
-];
 
 const MOCK_INBOX: InboxMessage[] = [
     { _id: "m1", subject: "Welcome to betterChess!", body: "Thank you for joining betterChess. Explore ranked matches and use our AI analysis to sharpen your game.", isRead: false, createdAt: "2025-01-01T08:00:00Z", category: "system" },
@@ -97,28 +59,18 @@ const MOCK_INBOX: InboxMessage[] = [
 // Main content
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface UserProfile {
-    _id: string;
-    username: string;
-    fullName: string;
-    elo: number;
-    avatarLetter: string;
-    avatarColor: string;
-    isOnline: boolean;
-}
-
 function MainContent({
-    notifications: initNotifs,
     inboxMessages,
     friends,
+    addNewFriend
 }: {
-    notifications: Notification[];
     inboxMessages: InboxMessage[];
     friends: any[];
+    addNewFriend: (friend: Friend) => void
 }) {
     const [notifOpen, setNotifOpen] = useState(false);
     const [inboxOpen, setInboxOpen] = useState(false);
-    const [notifs, setNotifs] = useState(initNotifs);
+    const [notifications, setNotifications] = useState<INotification[]>([]);
     const [messages] = useState(inboxMessages);
     const [query, setQuery] = useState("");
     const [isSearching, setIsSearching] = useState(false);
@@ -127,9 +79,7 @@ function MainContent({
     const [friendStatuses, setFriendStatuses] = useState<any>({});
     const inputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
-
-    const unreadNotif = notifs.filter(n => !n.isRead).length;
-    const unreadInbox = messages.filter(m => !m.isRead).length;
+    const [unReadNotifications, setUnReadNotifications] = useState<number>(0);
 
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500); // Using your hook
@@ -194,7 +144,7 @@ function MainContent({
 
     const handleMarkAllRead = useCallback(() => {
         /** TODO: PATCH /api/notifications/mark-all-read */
-        setNotifs(p => p.map(n => ({ ...n, isRead: true })));
+        setNotifications(p => p.map(n => ({ ...n, isRead: true })));
     }, []);
 
     const handleClear = () => {
@@ -217,6 +167,25 @@ function MainContent({
             console.log("Error Fetching Friends", error);
         }
     };
+
+    const fetchNotifications = useCallback(async () => {
+        try {
+            const response = await apiClient.get('/v1/friends/requests/pending');
+            const data = await response.data.data as INotification[];
+
+            console.log("Fetched Notifications : ", data);
+            setNotifications(data);
+
+            setUnReadNotifications(data.filter(n => !n.isRead).length);
+
+        } catch (error) {
+            console.error("Error fetching notifications: ", error);
+        }
+    }, [apiClient]);
+
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
 
     useEffect(() => {
         if (debouncedSearch) {
@@ -243,14 +212,14 @@ function MainContent({
                 <div className="flex items-center gap-1.5">
                     <IconBtn
                         icon={<Bell size={18} />}
+                        badge={unReadNotifications}
                         label="Notifications"
-                        badge={unreadNotif}
                         onClick={() => setNotifOpen(true)}
                     />
                     <IconBtn
                         icon={<Inbox size={18} />}
+                        badge={10}
                         label="Inbox"
-                        badge={unreadInbox}
                         onClick={() => setInboxOpen(true)}
                     />
                     <IconBtn
@@ -383,8 +352,9 @@ function MainContent({
             <NotificationDialog
                 open={notifOpen}
                 onClose={() => setNotifOpen(false)}
-                notifications={notifs}
+                notifications={notifications}
                 onMarkAllRead={handleMarkAllRead}
+                addNewFriend={addNewFriend}
             />
             <InboxDialog
                 open={inboxOpen}
@@ -395,22 +365,10 @@ function MainContent({
     );
 }
 
-interface Friend {
-    _id: string;
-    username: string;
-    fullName: string;
-    elo: number;
-    avatarLetter: string;
-    avatarColor: string;
-    isOnline: boolean;
-    friendSince: string;
-}
-
 export default function SocialPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    // const { user: me } = useAppSelector(state => state.auth)
-    const me = MOCK_ME;
+    const { user: me } = useAppSelector((state: RootState) => state.auth);
     const [friends, setFriends] = useState<any[]>([]);
     const { socket } = useSocket();
 
@@ -448,6 +406,12 @@ export default function SocialPage() {
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
     }, [socket]);
+
+    const addNewFriend = (friend: Friend) => {
+        setFriends(p => [...p, friend]);
+    }
+
+    if (!me) return null;
 
     return (
         <>
@@ -516,9 +480,9 @@ export default function SocialPage() {
                     </div>
 
                     <MainContent
-                        notifications={MOCK_NOTIFICATIONS}
                         inboxMessages={MOCK_INBOX}
                         friends={friends}
+                        addNewFriend={addNewFriend}
                     />
                 </div>
             </div>

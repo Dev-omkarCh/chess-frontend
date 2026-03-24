@@ -19,8 +19,16 @@ export interface Notification {
     fromUser?: Pick<UserProfile, "_id" | "username" | "avatarLetter" | "avatarColor">;
 }
 
-export interface Friend extends UserProfile {
-    friendSince: string;
+export interface Friend {
+    username: string;
+    email: string;
+    avatar: string;
+    elo: number;
+    fullName: string;
+    isOnline: boolean;
+    isVerified: boolean;
+    lastOnline: string;
+    _id: string; // Assuming the ID is passed for keying
 }
 
 export interface InboxMessage {
@@ -41,13 +49,20 @@ export interface IFriendship {
     updatedAt: string;
 }
 
+interface Sender {
+    username: string;
+    avatar: string;
+    elo: string;
+}
+
 export interface INotification {
     _id: string;
-    type: 'FRIEND_REQUEST' | 'GAME_INVITE' | 'SYSTEM_ALERT';
+    sender: Sender;
+    isRead: boolean;
     message: string;
-    senderName?: string;
-    payload?: any; // For redirecting to gameId or profile
-    timestamp: number;
+    type: 'FRIEND_REQUEST' | 'GAME_INVITE' | 'SYSTEM_ALERT';
+    timestamp: string;
+    payload?: any;
 }
 
 export type NotificationType =

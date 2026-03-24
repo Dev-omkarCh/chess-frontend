@@ -2,20 +2,24 @@
 // Sidebar
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { Friend, UserProfile } from "@/types/social";
+import { Friend } from "@/types/social";
 import { ChevronRight, Link, Users } from "lucide-react";
 import FriendRow from "./FriendRow";
 import { cn, eloLabel } from "@/lib/utils";
 import EloBadge from "./EloBadge";
 import Avatar from "./Avatar";
+import { User } from "@/types/auth";
 
 function Sidebar({
     friends, me, onGameRequest,
 }: {
-    friends: Friend[]; me: UserProfile; onGameRequest: (id: string) => void;
+    friends: Friend[]; me: User; onGameRequest: (id: string) => void;
 }) {
     const online = friends.filter(f => f.isOnline);
     const offline = friends.filter(f => !f.isOnline);
+
+    console.log("online:", online);
+    console.log("offline:", offline);
 
     return (
         <aside className="flex flex-col h-full bg-card border-r border-border">
@@ -75,7 +79,7 @@ function Sidebar({
             </div>
 
             {/* My Profile — Discord-style footer strip */}
-            {/* <Link
+            <Link
                 href="/profile"
                 className={cn(
                     "shrink-0 flex items-center gap-3 px-4 py-3.5",
@@ -83,7 +87,8 @@ function Sidebar({
                     "transition-all duration-200 group active:scale-[0.99]",
                 )}
             >
-                <Avatar letter={me.avatarLetter} color={me.avatarColor} size="sm" online={me.isOnline} pulse />
+                {/* Replaced letter/color with direct avatar string */}
+                {/* <Avatar name={me.username} size="sm" online={true} pulse /> */}
                 <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-bold text-foreground truncate leading-tight">{me.username}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
@@ -96,7 +101,7 @@ function Sidebar({
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <ChevronRight size={15} className="text-muted-foreground" />
                 </div>
-            </Link> */}
+            </Link>
         </aside>
     );
 }
