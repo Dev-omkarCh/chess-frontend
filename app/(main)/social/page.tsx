@@ -19,12 +19,12 @@ import IconBtn from "@/features/social/IconBtn";
 import EloBadge from "@/features/social/EloBadge";
 import NotificationDialog from "@/features/social/NotificationDialog";
 import InboxDialog from "@/components/social/InboxDialog";
-import { Friend, INotification, Notification, SearchResult } from "@/types/social";
-import FriendRow from "@/features/social/FriendRow";
+import { Friend, FriendOnlineStatus, INotification, SearchResult } from "@/types/social";
 import Sidebar from "@/features/social/Sidebar";
 import SearchCard from "@/features/social/SearchCard";
 import toast from "react-hot-toast";
-import { useAppSelector } from "@/lib/hooks";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { setFriendOnline, setFriends } from "@/redux/socialSlice";
 import { RootState } from "@/lib/store";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -369,27 +369,29 @@ export default function SocialPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const { user: me } = useAppSelector((state: RootState) => state.auth);
-    const [friends, setFriends] = useState<any[]>([]);
+    const { friends } = useAppSelector((state: RootState) => state.social);
     const { socket } = useSocket();
+    const dispatch = useAppDispatch();
 
     const handleGameRequest = useCallback((friendId: string) => {
         console.info("[TODO] Game request →", friendId);
     }, []);
 
-    const fetchFriends = async () => {
+    const fetchFriends = async (socket: Socket) => {
         try {
             const response = await apiClient.get("/v1/friends");
-            const friends = response.data.data;
-            setFriends(friends);
+            const friends = response.data.data as Friend[];
+            dispatch(setFriends(friends));
+            const friendIds = friends.map((f: Friend) => f._id);
+            socket.emit('social:get-online-friends', { friendIds });
         } catch (error) {
             console.log("Error Fetching Friends", error);
         }
     };
 
     const getOnlineFriends = (socket: Socket) => {
-        socket.emit('social:get-online-friends');
-        socket.on('social:online-friends-list', (data) => {
-            console.log("[Socket] Online Friends : ", data);
+        socket.on('social:online-friends-list', (data: FriendOnlineStatus[]) => {
+            dispatch(setFriendOnline(data));
         });
     }
 
@@ -399,16 +401,16 @@ export default function SocialPage() {
         };
 
         if (socket) {
+            fetchFriends(socket);
             getOnlineFriends(socket);
         }
 
-        fetchFriends();
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
-    }, [socket]);
+    }, [socket, dispatch]);
 
     const addNewFriend = (friend: Friend) => {
-        setFriends(p => [...p, friend]);
+        // setFriends(p => [...p, friend]);
     }
 
     if (!me) return null;

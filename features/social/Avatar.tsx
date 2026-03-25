@@ -11,9 +11,10 @@ interface AvatarProps {
     size?: "xs" | "sm" | "md" | "lg" | "xl";
     online?: boolean;
     pulse?: boolean;
+    avatar?: string;
 }
 
-function Avatar({ letter, color, size = "md", online, pulse = false }: AvatarProps) {
+function Avatar({ letter, color, size = "md", online, pulse = false, avatar }: AvatarProps) {
     const dims: Record<string, string> = {
         xs: "w-7 h-7 text-xs",
         sm: "w-9 h-9 text-sm",
@@ -27,10 +28,10 @@ function Avatar({ letter, color, size = "md", online, pulse = false }: AvatarPro
     return (
         <div className="relative shrink-0" suppressHydrationWarning>
             <div className={cn(
-                "rounded-full flex items-center justify-center font-black text-white select-none ring-2 ring-background shadow-lg",
+                "rounded-full flex items-center justify-center font-black text-white select-none ring-2 ring-background shadow-lg capitalize",
                 dims[size], color,
             )}>
-                {letter}
+                {avatar && avatar.length > 0 ? (<img src={avatar} alt="avatar" className={dims[size]} />) : ""}
             </div>
             {online !== undefined && (
                 <span className={cn(

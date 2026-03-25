@@ -26,9 +26,16 @@ export interface Friend {
     elo: number;
     fullName: string;
     isOnline: boolean;
+    isPlaying: boolean;
     isVerified: boolean;
     lastOnline: string;
     _id: string; // Assuming the ID is passed for keying
+}
+
+export interface FriendOnlineStatus {
+    _id: string,
+    isOnline: boolean,
+    isPlaying: boolean,
 }
 
 export interface InboxMessage {
@@ -76,6 +83,7 @@ export interface SearchResult {
     _id: string;
     username: string;
     fullName: string;
+    avatar: string;
     elo: number;
     status: FriendStatus; // "not_friend" | "request_sent" | "friend" | "request_received"
     sendByMe?: boolean; // Only relevant for "request_sent" and "request_received"

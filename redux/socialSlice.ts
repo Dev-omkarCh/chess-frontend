@@ -1,11 +1,11 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { IFriendship } from '@/types/social';
+import { Friend, FriendOnlineStatus, IFriendship } from '@/types/social';
 import axios from 'axios';
 
 interface SocialState {
-    friends: IFriendship[];
+    friends: Friend[];
     pendingRequests: IFriendship[];
-    onlineFriendIds: string[];
+    onlineFriendData: string[];
     isLoading: boolean;
     error: string | null;
 }
@@ -13,7 +13,7 @@ interface SocialState {
 const initialState: SocialState = {
     friends: [],
     pendingRequests: [],
-    onlineFriendIds: [],
+    onlineFriendData: [],
     isLoading: false,
     error: null,
 };
@@ -35,14 +35,30 @@ const socialSlice = createSlice({
     name: 'social',
     initialState,
     reducers: {
+
+        setFriends: (state, action: PayloadAction<Friend[]>) => {
+            state.friends = action.payload;
+        },
+
         // Synchronous update for real-time Socket events
-        setFriendOnline: (state, action: PayloadAction<string>) => {
-            if (!state.onlineFriendIds.includes(action.payload)) {
-                state.onlineFriendIds.push(action.payload);
-            }
+        setFriendOnline: (state, action: PayloadAction<FriendOnlineStatus[]>) => {
+            const onlineUpdateList = action.payload;
+
+            // Create a Set of online IDs for O(1) lookup speed
+            const onlineIds = new Set(onlineUpdateList.map(f => f._id));
+
+            // Update the existing friends list
+            state.friends.forEach(friend => {
+                if (onlineIds.has(friend._id.toString())) {
+                    friend.isOnline = onlineUpdateList.find(f => f._id.toString() === friend._id.toString())?.isOnline || false;
+                    // Also update isPlaying if it exists in your payload
+                    // const statusData = onlineUpdateList.find(o => o._id === friend._id.toString());
+                    // friend.isPlaying = statusData?.isPlaying || false;
+                }
+            });
         },
         setFriendOffline: (state, action: PayloadAction<string>) => {
-            state.onlineFriendIds = state.onlineFriendIds.filter(id => id !== action.payload);
+            state.onlineFriendData = state.onlineFriendData.filter(id => id !== action.payload);
         },
         incomingRequest: (state, action: PayloadAction<IFriendship>) => {
             state.pendingRequests.unshift(action.payload);
@@ -68,5 +84,5 @@ const socialSlice = createSlice({
     },
 });
 
-export const { setFriendOnline, setFriendOffline, incomingRequest, removePendingRequest } = socialSlice.actions;
+export const { setFriendOnline, setFriendOffline, incomingRequest, removePendingRequest, setFriends } = socialSlice.actions;
 export default socialSlice.reducer;

@@ -6,22 +6,26 @@ import { cn, eloLabel } from "@/lib/utils";
 import { Friend } from "@/types/social";
 import { useState } from "react";
 import Avatar from "./Avatar";
-import { CheckCheck, Eye, Link, Swords, Trophy } from "lucide-react";
+import { CheckCheck, Eye, Swords, Trophy } from "lucide-react";
+import Link from "next/link";
 
-function FriendRow({
-    friend, onGameRequest
-}: {
+interface FriendRowProps {
     friend: Friend;
     onGameRequest: (id: string) => void;
-}) {
+}
+
+function FriendRow({ friend, onGameRequest }: FriendRowProps) {
+
     const [actionsVisible, setActionsVisible] = useState(false);
     const [gameReqSent, setGameReqSent] = useState(false);
     const { label, color } = eloLabel(friend.elo);
 
     function handleGameReq() {
-        setGameReqSent(true);
-        onGameRequest(friend._id);
-        setTimeout(() => setGameReqSent(false), 2000);
+        if (friend.isOnline) {
+            setGameReqSent(true);
+            onGameRequest(friend._id);
+            setTimeout(() => setGameReqSent(false), 2000);
+        }
     }
 
     return (
@@ -40,15 +44,13 @@ function FriendRow({
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             )}
 
-            <Avatar letter={friend?.username?.charAt(0)} color={"bg-green-500"} size="sm" online={friend?.isOnline} />
+            <Avatar avatar={friend.avatar} letter={friend?.username?.charAt(0)} color={"bg"} size="sm" online={friend?.isOnline} />
 
             <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-semibold text-foreground truncate leading-tight">{friend.username}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                     <Trophy size={10} className="text-primary shrink-0" />
                     <span className="text-xs text-muted-foreground font-mono">{friend.elo}</span>
-                    <span className="text-muted-foreground/30 text-xs">·</span>
-                    <span className={cn("text-xs font-medium", color)}>{label}</span>
                 </div>
             </div>
 
@@ -60,14 +62,15 @@ function FriendRow({
                 <button
                     onClick={handleGameReq}
                     title={gameReqSent ? "Sent!" : "Send Game Request"}
+                    disabled={!friend.isOnline || gameReqSent}
                     className={cn(
                         "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90",
-                        gameReqSent
+                        gameReqSent || friend.isOnline
                             ? "bg-emerald-500/20 text-emerald-400"
                             : "bg-primary/10 text-primary hover:bg-primary/20"
                     )}
                 >
-                    {gameReqSent ? <CheckCheck size={14} /> : <Swords size={14} />}
+                    {gameReqSent ? <CheckCheck size={14} /> : <Swords size={14} className={`${!friend.isOnline && "text-muted-foreground"}`} />}
                 </button>
                 <Link href={`/profile/${friend._id}`}>
                     <button
