@@ -1,192 +1,142 @@
 "use client"
-import React, { useState } from 'react';
-import { 
-  MessageSquare, Trash2, Pin, CheckCheck, 
-  Gamepad2, ShieldCheck, User, Search, 
-  MoreVertical, X, Filter, ChevronRight,
-  Inbox
+import { useState } from 'react';
+import {
+  ChevronRight,
+  Gift,
+  Inbox,
+  MessageSquare,
+  ShieldAlert
 } from 'lucide-react';
 
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { InboxMessage } from '@/types/social';
+import { cn, relativeTime } from '@/lib/utils';
 
 type MessageType = 'system' | 'game' | 'user';
 
-interface Message {
-  id: string;
-  type: MessageType;
-  sender: string;
-  preview: string;
-  time: string;
-  isRead: boolean;
-  isPinned: boolean;
-}
 
 interface InboxDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean; onClose: () => void; messages: InboxMessage[];
 }
 
-export default function InboxDialog({ isOpen, onOpenChange }: InboxDialogProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', type: 'system', sender: 'Security Team', preview: 'Your login from Tokyo was verified.', time: '10m', isRead: false, isPinned: true },
-    { id: '2', type: 'game', sender: 'Tournament Bot', preview: 'Round 4 starts in 5 minutes! Prepare your board.', time: '1h', isRead: false, isPinned: false },
-    { id: '3', type: 'user', sender: 'Magnus_Burner', preview: 'GG! That knight fork was insane. Rematch?', time: '2h', isRead: true, isPinned: false },
-    { id: '4', type: 'user', sender: 'Hikaru_Fan', preview: 'Are you joining the blitz arena tonight?', time: 'Yesterday', isRead: true, isPinned: false },
-  ]);
+type InboxTab = "inbox" | "system";
 
-  const [activeTab, setActiveTab] = useState<string>('all');
+const INBOX_ICON: Record<InboxMessage["category"], React.ReactNode> = {
+  system: <ShieldAlert size={15} />,
+  announcement: <Gift size={15} />,
+  support: <MessageSquare size={15} />,
+};
+const INBOX_COLOR: Record<InboxMessage["category"], string> = {
+  system: "bg-primary/15 text-primary border-primary/20",
+  announcement: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+  support: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+};
 
-  // --- ACTIONS ---
-  const toggleRead = (id: string) => {
-    setMessages(prev => prev.map(m => m.id === id ? { ...m, isRead: true } : m));
-  };
+function InboxDialog({ open, onClose, messages }: InboxDialogProps) {
+  const [tab, setTab] = useState<InboxTab>("inbox");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
-  const togglePin = (id: string) => {
-    setMessages(prev => prev.map(m => m.id === id ? { ...m, isPinned: !m.isPinned } : m));
-  };
+  const inboxMsgs = messages.filter(m => m.category !== "system");
+  const systemMsgs = messages.filter(m => m.category === "system");
+  const displayed = tab === "inbox" ? inboxMsgs : systemMsgs;
 
-  const deleteMessage = (id: string) => {
-    setMessages(prev => prev.filter(m => m.id !== id));
-  };
-
-  const deleteAll = () => {
-    if (confirm("Delete all messages in this category?")) {
-      setMessages(prev => prev.filter(m => activeTab !== 'all' ? m.type !== activeTab : false));
-    }
-  };
-
-  const filteredMessages = messages
-    .filter(m => activeTab === 'all' || m.type === activeTab)
-    .sort((a, b) => (a.isPinned === b.isPinned ? 0 : a.isPinned ? -1 : 1));
+  const tabs: { id: InboxTab; label: string; unread: number }[] = [
+    { id: "inbox", label: "Messages", unread: inboxMsgs.filter(m => !m.isRead).length },
+    { id: "system", label: "System", unread: systemMsgs.filter(m => !m.isRead).length },
+  ];
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="h-full w-full sm:h-[85vh] sm:max-w-[900px] rounded-none sm:rounded-[32px] p-0 border-none sm:border border-border/40 bg-card text-card-foreground shadow-2xl overflow-hidden flex flex-col focus:outline-none z-105">
-        
-        {/* --- 72px HEADER STRUCTURE --- */}
-        <header className="h-[72px] px-6 flex items-center justify-between bg-muted/5 border-b border-border/40 shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="p-2 bg-primary/10 rounded-xl text-primary hidden sm:block">
-              <MessageSquare size={20} />
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[520px] bg-card border-border p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
+        {/* Header */}
+        <div className="px-6 pt-4 border-b border-border bg-card/80 backdrop-blur-sm">
+          <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2.5 mb-4">
+            <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center">
+              <Inbox size={15} className="text-primary" />
             </div>
-            <DialogTitle className="text-[20px] font-semibold tracking-tight">Inbox</DialogTitle>
+            Inbox
+          </DialogTitle>
+          {/* Tabs */}
+          <div className="flex gap-0">
+            {tabs.map(t => (
+              <button
+                key={t.id}
+                onClick={() => { setTab(t.id); setExpanded(null); }}
+                className={cn(
+                  "relative flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all border-b-2 -mb-px",
+                  tab === t.id
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                )}
+              >
+                {t.label}
+                {t.unread > 0 && (
+                  <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-black px-1">
+                    {t.unread}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-              <input 
-                placeholder="Search mail..." 
-                className="bg-muted/50 border-none rounded-full py-2 pl-10 pr-4 text-sm w-[200px] focus:w-[280px] transition-all outline-none"
-              />
+        <div className="overflow-y-auto max-h-[440px] divide-y divide-border">
+          {displayed.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+                <Inbox size={24} className="text-muted-foreground/40" />
+              </div>
+              <p className="text-sm text-muted-foreground">Nothing here yet</p>
             </div>
-            <button 
-              onClick={deleteAll}
-              className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-all"
-              title="Delete All"
-            >
-              <Trash2 size={20} />
-            </button>
-          </div>
-        </header>
-
-        <div className="flex flex-1 overflow-hidden">
-          {/* --- SIDEBAR NAVIGATION (Gemini Style) --- */}
-          <nav className="w-[70px] sm:w-[200px] border-r border-border/40 flex flex-col py-4 gap-2 bg-muted/5">
-            <NavBtn active={activeTab === 'all'} onClick={() => setActiveTab('all')} icon={<Inbox size={18}/>} label="All" />
-            <NavBtn active={activeTab === 'user'} onClick={() => setActiveTab('user')} icon={<User size={18}/>} label="Messages" />
-            <NavBtn active={activeTab === 'game'} onClick={() => setActiveTab('game')} icon={<Gamepad2 size={18}/>} label="Game" />
-            <NavBtn active={activeTab === 'system'} onClick={() => setActiveTab('system')} icon={<ShieldCheck size={18}/>} label="System" />
-          </nav>
-
-          {/* --- MESSAGE LIST --- */}
-          <main className="flex-1 overflow-y-auto no-scrollbar bg-background/50">
-            <div className="p-2">
-              {filteredMessages.map((msg) => (
-                <div 
-                  key={msg.id}
-                  onDoubleClick={() => toggleRead(msg.id)}
-                  className={`
-                    group flex items-center gap-4 p-4 rounded-[24px] mb-1 transition-all cursor-pointer relative
-                    ${msg.isRead ? 'opacity-80' : 'bg-card shadow-sm border border-border/20'}
-                    hover:bg-muted/50 hover:shadow-md
-                  `}
-                >
-                  {/* Type Icon */}
-                  <div className={`
-                    h-12 w-12 rounded-2xl flex items-center justify-center shrink-0
-                    ${msg.type === 'system' ? 'bg-amber-500/10 text-amber-500' : 
-                      msg.type === 'game' ? 'bg-indigo-500/10 text-indigo-500' : 
-                      'bg-primary/10 text-primary'}
-                  `}>
-                    {msg.type === 'system' ? <ShieldCheck size={20}/> : msg.type === 'game' ? <Gamepad2 size={20}/> : <User size={20}/>}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      {msg.isPinned && <Pin size={12} className="text-primary fill-primary" />}
-                      <span className={`text-[15px] truncate ${!msg.isRead ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'}`}>
-                        {msg.sender}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground ml-auto whitespace-nowrap">{msg.time}</span>
-                    </div>
-                    <p className={`text-[13px] truncate ${!msg.isRead ? 'text-foreground/90' : 'text-muted-foreground'}`}>
-                      {msg.preview}
+          ) : displayed.map(m => (
+            <div key={m._id} className={cn(!m.isRead && "bg-primary/[0.035]")}>
+              <button
+                onClick={() => setExpanded(p => p === m._id ? null : m._id)}
+                className="w-full flex items-start gap-4 px-6 py-4 text-left hover:bg-accent/40 transition-colors"
+              >
+                <div className={cn(
+                  "w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 mt-0.5",
+                  INBOX_COLOR[m.category]
+                )}>
+                  {INBOX_ICON[m.category]}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className={cn(
+                      "text-[15px] font-semibold truncate",
+                      !m.isRead ? "text-foreground" : "text-muted-foreground"
+                    )}>
+                      {m.subject}
                     </p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {!m.isRead && <span className="w-2 h-2 rounded-full bg-primary shadow-sm shadow-primary/50" />}
+                      <span className="text-xs text-muted-foreground/50">{relativeTime(m.createdAt)}</span>
+                    </div>
                   </div>
-
-                  {/* Hover Actions (Gemini Floating Style) */}
-                  <div className="absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-background/80 backdrop-blur-md p-1.5 rounded-full shadow-lg border border-border/40">
-                    <ActionBtn onClick={() => toggleRead(msg.id)} icon={<CheckCheck size={16}/>} label="Mark Read" />
-                    <ActionBtn onClick={() => togglePin(msg.id)} icon={<Pin size={16} className={msg.isPinned ? 'fill-primary text-primary' : ''}/>} label="Pin" />
-                    <ActionBtn onClick={() => deleteMessage(msg.id)} icon={<Trash2 size={16}/>} label="Delete" variant="danger" />
+                  <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1 leading-relaxed">{m.body}</p>
+                </div>
+                <ChevronRight
+                  size={15}
+                  className={cn(
+                    "text-muted-foreground/30 shrink-0 mt-1 transition-transform duration-200",
+                    expanded === m._id && "rotate-90"
+                  )}
+                />
+              </button>
+              {/* Expanded body */}
+              {expanded === m._id && (
+                <div className="px-6 pb-4 -mt-1">
+                  <div className="ml-13 pl-0 sm:ml-[52px] p-4 rounded-xl bg-muted border border-border">
+                    <p className="text-sm text-muted-foreground leading-relaxed">{m.body}</p>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
-          </main>
+          ))}
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-// --- INTERNAL ATOMS ---
-
-function NavBtn({ active, onClick, icon, label }: any) {
-  return (
-    <button 
-      onClick={onClick}
-      className={`
-        flex items-center gap-4 px-4 py-3 mx-2 rounded-full transition-all
-        ${active ? 'bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-muted'}
-      `}
-    >
-      {icon}
-      <span className="hidden sm:inline text-sm">{label}</span>
-    </button>
-  );
-}
-
-function ActionBtn({ onClick, icon, label, variant = 'default' }: any) {
-  return (
-    <TooltipProvider delayDuration={0}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onClick(); }}
-            className={`p-2 rounded-full transition-colors ${variant === 'danger' ? 'hover:bg-destructive/10 hover:text-destructive' : 'hover:bg-muted text-muted-foreground hover:text-foreground'}`}
-          >
-            {icon}
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="text-[10px] py-1 px-2 rounded-md bg-foreground text-background">
-          {label}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
+export default InboxDialog;

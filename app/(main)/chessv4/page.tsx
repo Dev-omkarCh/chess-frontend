@@ -13,7 +13,6 @@ import { BsChatDots, BsArrowLeft } from "react-icons/bs";
 import { GiChessKing, GiChessBishop } from "react-icons/gi";
 import { HiLightningBolt } from "react-icons/hi";
 import { IoSearchOutline, IoClose } from "react-icons/io5";
-import { TbChessFilled } from "react-icons/tb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -25,7 +24,7 @@ import {
     Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { BoardSettings, BoardTheme, getColor, getPiece, pieceStyleType } from "@/lib/pieces-registry";
+import { BoardTheme, getColor, getPiece, pieceStyleType } from "@/lib/pieces-registry";
 import { Settings } from "lucide-react";
 import BoardSettingsDialog from "@/components/lobby/SettingsDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -502,7 +501,7 @@ export default function ChessPage() {
     const boardRef = useRef<HTMLDivElement>(null);
 
     // Timers
-    const [initTime, setInitTime] = useState(600);
+    const [, setInitTime] = useState(600);
     const [wTime, setWTime] = useState(600);
     const [bTime, setBTime] = useState(600);
     const [activeTimer, setActiveTimer] = useState<"w" | "b" | null>(null);
@@ -543,6 +542,13 @@ export default function ChessPage() {
             moveListRef.current.scrollTop = moveListRef.current.scrollHeight;
     }, [moves, isViewing]);
 
+    const endGame = useCallback((result: string) => {
+        setActiveTimer(null);
+        setGameResult(result);
+        setGameStatus("checkmate");
+        setShowResult(true);
+    }, []);
+
     // Timer
     useEffect(() => {
         if (timerRef.current) clearInterval(timerRef.current);
@@ -555,14 +561,7 @@ export default function ChessPage() {
             }
         }, 1000);
         return () => clearInterval(timerRef.current!);
-    }, [activeTimer, isOver]);
-
-    const endGame = useCallback((result: string) => {
-        setActiveTimer(null);
-        setGameResult(result);
-        setGameStatus("checkmate");
-        setShowResult(true);
-    }, []);
+    }, [activeTimer, isOver, endGame]);
 
     const beep = useCallback((type: "move" | "capture" | "check" | "illegal") => {
         if (!sound) return;

@@ -1,9 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { setStats } from '@/redux/gameSlice';
+import toast from 'react-hot-toast';
+import { pushNotification } from '@/redux/notificationSlice';
+import { INotification } from '@/types/social';
 
 interface SocketContextType {
     socket: Socket | null;
@@ -36,6 +39,25 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
             newSocket.on('match:update-stats', (data: { onlineUsers: number; usersInQueue: number }) => {
                 console.log('[Socket] Match stats updated:', data);
                 dispatch(setStats(data));
+            });
+
+            newSocket.on('notification:new', (data: INotification) => {
+                // if (data.type === 'FRIEND_REQUEST') {
+
+                console.log("new Event : friend Request")
+                toast.success(`New friend request from ${data.sender.username}`);
+
+                const notification: INotification = {
+                    _id: data._id,
+                    type: data.type,
+                    isRead: false,
+                    message: `New friend request from ${data.sender.username}`,
+                    sender: data.sender,
+                    payload: {}, // For redirecting to gameId or profile
+                    timestamp: data.timestamp
+                }
+                dispatch(pushNotification(notification))
+                // }
             });
 
             newSocket.on('connect_error', (err) => {

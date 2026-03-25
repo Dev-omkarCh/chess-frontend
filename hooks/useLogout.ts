@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { loginUser, logoutUser } from "@/services/auth.service";
+import { logoutUser } from "@/services/auth.service";
 import { useRouter } from "next/navigation";
-import { LoginUser } from "@/app/(auth)/type";
 import { useAppDispatch } from "@/lib/hooks";
-import { clearAuth, setAuth } from "@/redux/authSlice";
+import { clearAuth } from "@/redux/authSlice";
 import toast from "react-hot-toast";
 
 export const useLogout = () => {
