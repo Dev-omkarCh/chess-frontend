@@ -1,18 +1,19 @@
 "use client"
-import React, { useState } from 'react';
-import { 
-  Bell, Trash2, X, Swords, Settings2, 
-  Clock, Calendar, ChevronDown, Inbox, 
+import React, { useEffect, useState } from 'react';
+import {
+  Bell, Trash2, X, Swords, Settings2,
+  Clock, Calendar, ChevronDown, Inbox,
   MoreHorizontal, Check, ShieldAlert
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import axios from 'axios';
 
 export default function GeminiNotificationDialog({ isOpen, onOpenChange }: { isOpen?: boolean, onOpenChange?: (open: boolean) => void }) {
   const [selected, setSelected] = useState<string[]>([]);
-  
+
   const notifications = [
     { id: '1', type: 'challenge', user: 'Magnus_Burner', time: '2m ago', desc: '5+0 Blitz Challenge', status: 'unread' },
     { id: '2', type: 'request', user: 'Hikaru_Fan', time: '1h ago', desc: 'Sent a friend request', status: 'unread' },
@@ -26,9 +27,9 @@ export default function GeminiNotificationDialog({ isOpen, onOpenChange }: { isO
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="h-full w-full sm:h-[auto] sm:max-w-[640px] rounded-none sm:rounded-[28px] p-5 border-none sm:border border-border/40 bg-card text-card-foreground shadow-2xl overflow-hidden flex flex-col focus:outline-none z-105">
-        
+
         <Tabs defaultValue="inbox" className="w-full flex flex-col h-full">
-          
+
           {/* --- 72px RESPONSIVE HEADER --- */}
           <div className="h-[72px] px-4 md:px-6 flex items-center justify-between bg-muted/5 border-b border-border/40 shrink-0">
             <div className="flex items-center gap-3">
@@ -40,7 +41,7 @@ export default function GeminiNotificationDialog({ isOpen, onOpenChange }: { isO
               </DialogTrigger>
 
               {selected.length > 0 ? (
-                <button 
+                <button
                   onClick={() => setSelected([])}
                   className="hidden sm:block p-2 hover:bg-muted rounded-full text-foreground transition-colors"
                 >
@@ -51,7 +52,7 @@ export default function GeminiNotificationDialog({ isOpen, onOpenChange }: { isO
                   <Inbox size={20} />
                 </div>
               )}
-              
+
               <DialogTitle className="text-[17px] md:text-[18px] font-medium tracking-tight truncate">
                 {selected.length > 0 ? `${selected.length} Selected` : 'Notifications'}
               </DialogTitle>
@@ -65,7 +66,7 @@ export default function GeminiNotificationDialog({ isOpen, onOpenChange }: { isO
                 </button>
               ) : (
                 <div className="flex items-center bg-muted/50 sm:bg-muted/40 rounded-full p-1">
-                   <TabsList className="bg-transparent h-7 md:h-8 p-0 gap-1">
+                  <TabsList className="bg-transparent h-7 md:h-8 p-0 gap-1">
                     <TabsTrigger value="inbox" className="rounded-full px-3 md:px-4 h-full text-[11px] md:text-xs font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Inbox</TabsTrigger>
                     <TabsTrigger value="settings" className="rounded-full px-3 md:px-4 h-full text-[11px] md:text-xs font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Settings</TabsTrigger>
                   </TabsList>
@@ -78,8 +79,8 @@ export default function GeminiNotificationDialog({ isOpen, onOpenChange }: { isO
           <div className="flex-1 overflow-hidden">
             <TabsContent value="inbox" className="m-0 h-full overflow-y-auto no-scrollbar pb-20 sm:pb-4">
               {notifications.map((n) => (
-                <div 
-                  key={n.id} 
+                <div
+                  key={n.id}
                   className={`
                     group flex items-start gap-3 md:gap-5 p-4 md:p-5 mx-2 my-1 rounded-[16px] md:rounded-[20px] transition-all cursor-pointer relative
                     ${selected.includes(n.id) ? 'bg-primary/5' : 'hover:bg-muted/40'}
@@ -92,13 +93,13 @@ export default function GeminiNotificationDialog({ isOpen, onOpenChange }: { isO
                   )}
 
                   <div className="pt-0.5">
-                    <Checkbox 
-                      checked={selected.includes(n.id)} 
+                    <Checkbox
+                      checked={selected.includes(n.id)}
                       className="h-5 w-5 rounded-md border-muted-foreground/30 data-[state=checked]:bg-primary"
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-0.5">
                       <span className="text-[14px] md:text-[15px] font-semibold text-foreground truncate pr-2">{n.user}</span>
@@ -107,7 +108,7 @@ export default function GeminiNotificationDialog({ isOpen, onOpenChange }: { isO
                     <p className="text-[13px] md:text-[14px] text-muted-foreground leading-relaxed mb-3 line-clamp-2 md:line-clamp-none">
                       {n.desc}
                     </p>
-                    
+
                     {n.type === 'challenge' && (
                       <div className="flex gap-2 w-full xs:w-auto">
                         <button className="flex-1 xs:flex-none px-5 md:px-8 py-2 bg-primary text-primary-foreground rounded-full text-[11px] md:text-xs font-bold hover:opacity-90 transition-all">
@@ -124,29 +125,29 @@ export default function GeminiNotificationDialog({ isOpen, onOpenChange }: { isO
             </TabsContent>
 
             <TabsContent value="settings" className="m-0 p-4 md:p-8 space-y-6 md:space-y-10 h-full overflow-y-auto no-scrollbar">
-               <div className="space-y-4 md:space-y-6">
-                  <h4 className="text-[11px] md:text-[13px] font-bold text-primary uppercase tracking-widest ml-1">Notifications Settings</h4>
-                  
-                  <div className="space-y-1 md:space-y-2">
-                    <GeminiSettingsRow 
-                      title="Auto-delete read alerts"
-                      desc="Removed automatically after reading."
-                      action={<GeminiSelect options={['7 days', '30 days', 'Never']} />}
-                    />
-                    <GeminiSettingsRow 
-                      title="Storage Limit"
-                      desc="Maximum items saved in feed."
-                      action={<GeminiSelect options={['50 items', '100 items']} />}
-                    />
-                  </div>
-               </div>
+              <div className="space-y-4 md:space-y-6">
+                <h4 className="text-[11px] md:text-[13px] font-bold text-primary uppercase tracking-widest ml-1">Notifications Settings</h4>
 
-               <div className="p-4 md:p-5 rounded-[20px] md:rounded-[24px] bg-primary/[0.03] border border-primary/10 flex gap-3 md:gap-4">
-                  <ShieldAlert className="text-primary shrink-0" size={18} />
-                  <p className="text-[12px] md:text-[13px] text-muted-foreground leading-relaxed">
-                    Security updates and tournament invites are managed by system and cannot be auto-deleted.
-                  </p>
-               </div>
+                <div className="space-y-1 md:space-y-2">
+                  <GeminiSettingsRow
+                    title="Auto-delete read alerts"
+                    desc="Removed automatically after reading."
+                    action={<GeminiSelect options={['7 days', '30 days', 'Never']} />}
+                  />
+                  <GeminiSettingsRow
+                    title="Storage Limit"
+                    desc="Maximum items saved in feed."
+                    action={<GeminiSelect options={['50 items', '100 items']} />}
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 md:p-5 rounded-[20px] md:rounded-[24px] bg-primary/[0.03] border border-primary/10 flex gap-3 md:gap-4">
+                <ShieldAlert className="text-primary shrink-0" size={18} />
+                <p className="text-[12px] md:text-[13px] text-muted-foreground leading-relaxed">
+                  Security updates and tournament invites are managed by system and cannot be auto-deleted.
+                </p>
+              </div>
             </TabsContent>
           </div>
         </Tabs>

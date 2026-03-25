@@ -1,7 +1,7 @@
 import { useSocket } from "@/context/SocketProvider";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { RootState } from "@/lib/store";
-import { setStats, startSearching, stopSearching } from "@/redux/gameSlice";
+import { startSearching, stopSearching } from "@/redux/gameSlice";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
 

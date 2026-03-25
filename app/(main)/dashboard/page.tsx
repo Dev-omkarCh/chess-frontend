@@ -93,7 +93,13 @@ export default function ResponsiveChessDashboard() {
                         <div className="relative">
                             <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-accent transition-all">
                                 <span className="text-sm font-medium hidden sm:block">{user?.username}</span>
-                                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">{user?.profilePicture}</div>
+                                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">
+                                    {user?.avatar ? (
+                                        <img src={user.avatar} alt="" className='w-full h-full object-cover rounded-full' />
+                                    ) : (
+                                        user?.username?.charAt(0).toUpperCase() || 'U'
+                                    )}
+                                </div>
                                 <ChevronDown size={14} className="hidden sm:block" />
                             </button>
 

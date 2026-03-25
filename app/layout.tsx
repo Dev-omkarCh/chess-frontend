@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import StoreProvider from "./StoreProvider";
 import { Toaster } from "react-hot-toast"
 import { SocketProvider } from "@/context/SocketProvider";
+import { NotificationToast } from "@/components/NotificationToast";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,20 +35,23 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <StoreProvider>
-          <SocketProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-            >
+          <AuthProvider>
+            <SocketProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+              >
+                <NotificationToast />
 
-              {/* <Navbar /> */}
-              <TooltipProvider>
-                {children}
-                <Toaster />
-              </TooltipProvider>
-            </ThemeProvider>
-          </SocketProvider>
+                {/* <Navbar /> */}
+                <TooltipProvider>
+                  {children}
+                  <Toaster />
+                </TooltipProvider>
+              </ThemeProvider>
+            </SocketProvider>
+          </AuthProvider>
         </StoreProvider>
       </body>
     </html >
