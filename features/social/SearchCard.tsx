@@ -4,9 +4,10 @@
 
 import { cn, eloLabel } from "@/lib/utils";
 import { FriendStatus, SearchResult } from "@/types/social";
-import { CheckCheck, Clock, Eye, Link, UserMinus, UserPlus } from "lucide-react";
+import { CheckCheck, Clock, Eye, UserMinus, UserPlus } from "lucide-react";
 import Avatar from "./Avatar";
 import EloBadge from "./EloBadge";
+import Link from "next/link";
 
 interface SearchCardProps {
     user: SearchResult;
@@ -36,9 +37,6 @@ function SearchCard({ user, friends, onToggleFriend }: SearchCardProps) {
         const index = Math.floor(Math.random() * colors.length);
         return colors[index];
     };
-    const avatarColor = getRandomColor();
-
-    console.log(friendStatus);
 
     return (
         <div className={cn(
@@ -51,7 +49,7 @@ function SearchCard({ user, friends, onToggleFriend }: SearchCardProps) {
             {/* Subtle left accent on hover */}
             <div className="absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full bg-primary scale-y-0 group-hover:scale-y-100 transition-transform duration-300 origin-center" />
 
-            <Avatar letter={user.username[0]} color={avatarColor} size="md" online={isOnline} />
+            <Avatar letter={user.username[0]} color={""} size="md" online={isOnline} avatar={user.avatar} />
 
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">

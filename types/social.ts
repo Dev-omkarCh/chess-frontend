@@ -26,9 +26,16 @@ export interface Friend {
     elo: number;
     fullName: string;
     isOnline: boolean;
+    isPlaying: boolean;
     isVerified: boolean;
     lastOnline: string;
     _id: string; // Assuming the ID is passed for keying
+}
+
+export interface FriendOnlineStatus {
+    _id: string,
+    isOnline: boolean,
+    isPlaying: boolean,
 }
 
 export interface InboxMessage {
@@ -50,6 +57,7 @@ export interface IFriendship {
 }
 
 interface Sender {
+    _id: string;
     username: string;
     avatar: string;
     elo: string;
@@ -60,7 +68,7 @@ export interface INotification {
     sender: Sender;
     isRead: boolean;
     message: string;
-    type: 'FRIEND_REQUEST' | 'GAME_INVITE' | 'SYSTEM_ALERT';
+    type: 'FRIEND_REQUEST' | "FRIEND_REQUEST_ACCEPTED" | "FRIEND_REQUEST_REJECTED" | 'GAME_INVITE' | 'SYSTEM_ALERT';
     timestamp: string;
     payload?: any;
 }
@@ -76,6 +84,7 @@ export interface SearchResult {
     _id: string;
     username: string;
     fullName: string;
+    avatar: string;
     elo: number;
     status: FriendStatus; // "not_friend" | "request_sent" | "friend" | "request_received"
     sendByMe?: boolean; // Only relevant for "request_sent" and "request_received"
