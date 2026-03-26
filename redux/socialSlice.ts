@@ -40,6 +40,10 @@ const socialSlice = createSlice({
             state.friends = action.payload;
         },
 
+        addFriend: (state, action: PayloadAction<Friend>) => {
+            state.friends.push(action.payload);
+        },
+
         // Synchronous update for real-time Socket events
         setFriendOnline: (state, action: PayloadAction<FriendOnlineStatus[]>) => {
             const onlineUpdateList = action.payload;
@@ -84,5 +88,5 @@ const socialSlice = createSlice({
     },
 });
 
-export const { setFriendOnline, setFriendOffline, incomingRequest, removePendingRequest, setFriends } = socialSlice.actions;
+export const { setFriendOnline, setFriendOffline, incomingRequest, removePendingRequest, setFriends, addFriend } = socialSlice.actions;
 export default socialSlice.reducer;

@@ -1,4 +1,5 @@
 'use client';
+import Avatar from '@/features/social/Avatar';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { dismissNotification } from '@/redux/notificationSlice';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,9 +23,12 @@ export const NotificationToast = () => {
                     exit={{ opacity: 0, x: 20, scale: 0.95 }}
                     className="pointer-events-auto w-80 bg-card border border-border shadow-2xl rounded-2xl p-4 backdrop-blur-md"
                 >
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start gap-3">
+                        <div className='flex-shrink-0'>
+                            <img src={current.sender.avatar} alt="" className='w-10 h-10 rounded-full' />
+                        </div>
                         <div>
-                            <h4 className="font-bold text-primary">{current.type.replace('_', ' ')}</h4>
+                            {/* <h4 className="font-bold text-primary">{current.type.replace('_', ' ')}</h4> */}
                             <p className="text-sm text-muted-foreground">{current.message}</p>
                         </div>
                         <button

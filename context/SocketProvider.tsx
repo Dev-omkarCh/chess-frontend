@@ -5,8 +5,9 @@ import { io, Socket } from 'socket.io-client';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { setStats } from '@/redux/gameSlice';
 import toast from 'react-hot-toast';
-import { pushNotification } from '@/redux/notificationSlice';
-import { INotification } from '@/types/social';
+import { addNotification, pushNotification } from '@/redux/notificationSlice';
+import { Friend, INotification } from '@/types/social';
+import { addFriend } from '@/redux/socialSlice';
 
 interface SocketContextType {
     socket: Socket | null;
@@ -42,22 +43,36 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
             });
 
             newSocket.on('notification:new', (data: INotification) => {
-                // if (data.type === 'FRIEND_REQUEST') {
 
-                console.log("new Event : friend Request")
-                toast.success(`New friend request from ${data.sender.username}`);
+                let message = "";
 
+                if (data.type as string === "FRIEND_REQUEST") {
+                    message = `New friend request from ${data.sender.username}`;
+                }
+                if (data.type as string === "FRIEND_REQUEST_ACCEPTED") {
+                    message = `${data.sender.username} accepted your friend request`;
+                }
+                if (data.type as string === "FRIEND_REQUEST_REJECTED") {
+                    message = `${data.sender.username} rejected your friend request`;
+                }
                 const notification: INotification = {
                     _id: data._id,
                     type: data.type,
                     isRead: false,
-                    message: `New friend request from ${data.sender.username}`,
+                    message: message,
                     sender: data.sender,
                     payload: {}, // For redirecting to gameId or profile
                     timestamp: data.timestamp
                 }
+                if (data.type === "FRIEND_REQUEST") {
+                    dispatch(addNotification(notification))
+                }
+                if (data.type === "FRIEND_REQUEST_ACCEPTED") {
+                    console.log("data.payload", data.payload);
+                    dispatch(addFriend(data.payload.friend as Friend))
+                }
                 dispatch(pushNotification(notification))
-                // }
+
             });
 
             newSocket.on('connect_error', (err) => {

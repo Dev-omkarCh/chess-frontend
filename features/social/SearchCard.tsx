@@ -4,9 +4,10 @@
 
 import { cn, eloLabel } from "@/lib/utils";
 import { FriendStatus, SearchResult } from "@/types/social";
-import { CheckCheck, Clock, Eye, Link, UserMinus, UserPlus } from "lucide-react";
+import { CheckCheck, Clock, Eye, UserMinus, UserPlus } from "lucide-react";
 import Avatar from "./Avatar";
 import EloBadge from "./EloBadge";
+import Link from "next/link";
 
 interface SearchCardProps {
     user: SearchResult;
@@ -36,8 +37,6 @@ function SearchCard({ user, friends, onToggleFriend }: SearchCardProps) {
         const index = Math.floor(Math.random() * colors.length);
         return colors[index];
     };
-
-    console.log(friendStatus);
 
     return (
         <div className={cn(

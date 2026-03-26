@@ -9,29 +9,38 @@ import Avatar from "./Avatar";
 import { Button } from "@/components/ui/button";
 import { Friend, INotification } from "@/types/social";
 import apiClient from "@/api/axois";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { addFriend } from "@/redux/socialSlice";
+import { RootState } from "@/lib/store";
+import { removeNotification } from "@/redux/notificationSlice";
 
 
 const NOTIF_ICON: Record<INotification['type'], React.ReactNode> = {
     FRIEND_REQUEST: <UserPlus size={15} />,
     GAME_INVITE: <Swords size={15} />,
     SYSTEM_ALERT: <Info size={15} />,
+    FRIEND_REQUEST_ACCEPTED: <UserPlus size={15} />,
+    FRIEND_REQUEST_REJECTED: <UserPlus size={15} />,
 };
 
 const NOTIF_COLOR: Record<INotification['type'], string> = {
     FRIEND_REQUEST: "bg-primary/15 text-primary border-primary/20",
     GAME_INVITE: "bg-amber-500/15 text-amber-400 border-amber-500/20",
     SYSTEM_ALERT: "bg-muted text-muted-foreground border-border",
+    FRIEND_REQUEST_ACCEPTED: "bg-primary/15 text-primary border-primary/20",
+    FRIEND_REQUEST_REJECTED: "bg-primary/15 text-primary border-primary/20",
 };
 
 function NotificationDialog({
-    open, onClose, notifications, onMarkAllRead, addNewFriend
+    open, onClose, onMarkAllRead, addNewFriend
 }: {
     open: boolean; onClose: () => void;
-    notifications: INotification[];
     onMarkAllRead: () => void;
     addNewFriend: (friend: Friend) => void;
 }) {
+    const notifications = useAppSelector((state: RootState) => state.notification.notifications);
     const unread = notifications.filter(n => !n.isRead).length;
+    const dispatch = useAppDispatch();
 
     const acceptFriendRequest = async (id: string) => {
         try {
@@ -40,7 +49,8 @@ function NotificationDialog({
             });
 
             const friend = response.data.data as Friend;
-            addNewFriend(friend);
+            dispatch(addFriend(friend));
+            dispatch(removeNotification(id));
             console.log("Friend request accepted:", friend);
         } catch (error) {
             console.log("Error accepting friend request:", error);
@@ -95,7 +105,7 @@ function NotificationDialog({
                         >
                             {/* Icon / avatar logic updated for sender */}
                             {n.sender ? (
-                                <Avatar letter={n.sender.username.charAt(0)} color={"bg-blue-500"} size="sm" />
+                                <Avatar avatar={n.sender.avatar || ""} letter={n.sender.username.charAt(0)} color={"bg-blue-500"} />
                             ) : (
                                 <div className={cn(
                                     "w-9 h-9 rounded-xl flex items-center justify-center border shrink-0",

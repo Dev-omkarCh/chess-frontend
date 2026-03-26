@@ -24,8 +24,9 @@ import Sidebar from "@/features/social/Sidebar";
 import SearchCard from "@/features/social/SearchCard";
 import toast from "react-hot-toast";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { setFriendOnline, setFriends } from "@/redux/socialSlice";
+import { addFriend, setFriendOnline, setFriends } from "@/redux/socialSlice";
 import { RootState } from "@/lib/store";
+import { setNotifications } from "@/redux/notificationSlice";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -70,7 +71,7 @@ function MainContent({
 }) {
     const [notifOpen, setNotifOpen] = useState(false);
     const [inboxOpen, setInboxOpen] = useState(false);
-    const [notifications, setNotifications] = useState<INotification[]>([]);
+    const notifications = useAppSelector((state: RootState) => state.notification.notifications);
     const [messages] = useState(inboxMessages);
     const [query, setQuery] = useState("");
     const [isSearching, setIsSearching] = useState(false);
@@ -79,10 +80,13 @@ function MainContent({
     const [friendStatuses, setFriendStatuses] = useState<any>({});
     const inputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
-    const [unReadNotifications, setUnReadNotifications] = useState<number>(0);
+    const [unReadNotifications, setUnReadNotifications] = useState<number>(() => {
+        return notifications.filter((n: INotification) => !n.isRead).length;
+    });
 
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500); // Using your hook
+    const dispatch = useAppDispatch();
 
     const sendFriendRequest = async (recipientId: string) => {
         try {
@@ -96,11 +100,13 @@ function MainContent({
 
     };
 
-    const accpetFriendRequest = async (senderId: string) => {
+    const accpetFriendRequest = async (requestId: string) => {
         try {
-            await apiClient.post(`/v1/friends/request/${senderId}`, {
-                senderId
+            const response = await apiClient.patch(`/v1/friends/request/${requestId}`, {
+                status: "accepted"
             });
+            console.log("response", response.data.data.friend);
+            dispatch(addFriend(response.data.data.friend as Friend));
             toast.success("Friend Request Accepted");
         } catch (error) {
             console.log("Error Accepting Friend Request", error);
@@ -144,7 +150,8 @@ function MainContent({
 
     const handleMarkAllRead = useCallback(() => {
         /** TODO: PATCH /api/notifications/mark-all-read */
-        setNotifications(p => p.map(n => ({ ...n, isRead: true })));
+        // setNotifications(p => p.map(n => ({ ...n, isRead: true })));
+        dispatch(setNotifications(notifications.map(n => ({ ...n, isRead: true }))));
     }, []);
 
     const handleClear = () => {
@@ -174,7 +181,7 @@ function MainContent({
             const data = await response.data.data as INotification[];
 
             console.log("Fetched Notifications : ", data);
-            setNotifications(data);
+            dispatch(setNotifications(data));
 
             setUnReadNotifications(data.filter(n => !n.isRead).length);
 
@@ -186,6 +193,10 @@ function MainContent({
     useEffect(() => {
         fetchNotifications();
     }, []);
+
+    useEffect(() => {
+        setUnReadNotifications(notifications.filter(n => !n.isRead).length);
+    }, [notifications]);
 
     useEffect(() => {
         if (debouncedSearch) {
@@ -352,7 +363,6 @@ function MainContent({
             <NotificationDialog
                 open={notifOpen}
                 onClose={() => setNotifOpen(false)}
-                notifications={notifications}
                 onMarkAllRead={handleMarkAllRead}
                 addNewFriend={addNewFriend}
             />
@@ -380,8 +390,10 @@ export default function SocialPage() {
     const fetchFriends = async (socket: Socket) => {
         try {
             const response = await apiClient.get("/v1/friends");
+
             const friends = response.data.data as Friend[];
             dispatch(setFriends(friends));
+
             const friendIds = friends.map((f: Friend) => f._id);
             socket.emit('social:get-online-friends', { friendIds });
         } catch (error) {

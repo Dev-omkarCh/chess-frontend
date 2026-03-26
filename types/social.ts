@@ -57,6 +57,7 @@ export interface IFriendship {
 }
 
 interface Sender {
+    _id: string;
     username: string;
     avatar: string;
     elo: string;
@@ -67,7 +68,7 @@ export interface INotification {
     sender: Sender;
     isRead: boolean;
     message: string;
-    type: 'FRIEND_REQUEST' | 'GAME_INVITE' | 'SYSTEM_ALERT';
+    type: 'FRIEND_REQUEST' | "FRIEND_REQUEST_ACCEPTED" | "FRIEND_REQUEST_REJECTED" | 'GAME_INVITE' | 'SYSTEM_ALERT';
     timestamp: string;
     payload?: any;
 }

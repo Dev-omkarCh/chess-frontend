@@ -31,7 +31,7 @@ function Avatar({ letter, color, size = "md", online, pulse = false, avatar }: A
                 "rounded-full flex items-center justify-center font-black text-white select-none ring-2 ring-background shadow-lg capitalize",
                 dims[size], color,
             )}>
-                {avatar && avatar.length > 0 ? (<img src={avatar} alt="avatar" className={dims[size]} />) : ""}
+                {avatar ? (<img src={avatar} alt="avatar" className={cn(dims[size], "rounded-full object-cover")} />) : letter}
             </div>
             {online !== undefined && (
                 <span className={cn(
