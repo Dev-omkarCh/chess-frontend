@@ -1,9 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { INotification } from '@/types/social';
+import { Notification } from '@/types/social';
 
 interface NotificationState {
-    toastStack: INotification[]; // Handling multiple notifications if they come fast
-    notifications: INotification[];
+    toastStack: Notification[]; // Handling multiple notifications if they come fast
+    notifications: Notification[];
 }
 
 const initialState: NotificationState = {
@@ -16,11 +16,11 @@ const notificationSlice = createSlice({
     initialState,
     reducers: {
 
-        setNotifications: (state, action: PayloadAction<INotification[]>) => {
+        setNotifications: (state, action: PayloadAction<Notification[]>) => {
             state.notifications = action.payload;
         },
 
-        addNotification: (state, action: PayloadAction<INotification>) => {
+        addNotification: (state, action: PayloadAction<Notification>) => {
             state.notifications.unshift(action.payload);
         },
 
@@ -30,7 +30,7 @@ const notificationSlice = createSlice({
         },
 
         // Pushes new notification to the front [0]
-        pushNotification: (state, action: PayloadAction<INotification>) => {
+        pushNotification: (state, action: PayloadAction<Notification>) => {
             state.toastStack.unshift(action.payload);
         },
         // Dismisses a specific notification

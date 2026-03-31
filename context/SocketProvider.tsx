@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { setStats } from '@/redux/gameSlice';
 import toast from 'react-hot-toast';
 import { addNotification, pushNotification } from '@/redux/notificationSlice';
-import { Friend, INotification } from '@/types/social';
+import { Friend, Notification } from '@/types/social';
 import { addFriend } from '@/redux/socialSlice';
 
 interface SocketContextType {
@@ -42,34 +42,13 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
                 dispatch(setStats(data));
             });
 
-            newSocket.on('notification:new', (data: INotification) => {
+            newSocket.on('notification:new', (notification: Notification) => {
 
-                let message = "";
-
-                if (data.type as string === "FRIEND_REQUEST") {
-                    message = `New friend request from ${data.sender.username}`;
-                }
-                if (data.type as string === "FRIEND_REQUEST_ACCEPTED") {
-                    message = `${data.sender.username} accepted your friend request`;
-                }
-                if (data.type as string === "FRIEND_REQUEST_REJECTED") {
-                    message = `${data.sender.username} rejected your friend request`;
-                }
-                const notification: INotification = {
-                    _id: data._id,
-                    type: data.type,
-                    isRead: false,
-                    message: message,
-                    sender: data.sender,
-                    payload: {}, // For redirecting to gameId or profile
-                    timestamp: data.timestamp
-                }
-                if (data.type === "FRIEND_REQUEST") {
+                if (notification.category === "social" && (notification.event === "request" || notification.event === "invite")) {
                     dispatch(addNotification(notification))
                 }
-                if (data.type === "FRIEND_REQUEST_ACCEPTED") {
-                    console.log("data.payload", data.payload);
-                    dispatch(addFriend(data.payload.friend as Friend))
+                if (notification.category === "social" && notification.event === "accept") {
+                    dispatch(addFriend(notification.payload.friend as Friend))
                 }
                 dispatch(pushNotification(notification))
 

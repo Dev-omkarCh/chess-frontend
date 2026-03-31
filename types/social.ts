@@ -8,15 +8,33 @@ export interface UserProfile {
     isOnline: boolean;
 }
 
+type Category = "social" | "game" | "system" | "announcement";
+type Event = "request" | "accept" | "decline" | "invite" | "result" | "announcement" | "message" | "achievement";
+
 
 export interface Notification {
     _id: string;
-    type: NotificationType;
-    title: string;
-    body: string;
-    isRead: boolean;
+    category: Category;
+    event: Event;
+    sender: {
+        _id: string;
+        username: string;
+        avatar: string;
+        elo: string;
+    }
+    recipient: string;
+    relatedId: {
+        _id: string,
+        timeControl?: string,
+        status: string,
+        type?: string,
+    },
+    message: string;
+    onModel: string;
+    payload: any;
+
     createdAt: string;
-    fromUser?: Pick<UserProfile, "_id" | "username" | "avatarLetter" | "avatarColor">;
+    updatedAt: string;
 }
 
 export interface Friend {
@@ -88,4 +106,12 @@ export interface SearchResult {
     elo: number;
     status: FriendStatus; // "not_friend" | "request_sent" | "friend" | "request_received"
     sendByMe?: boolean; // Only relevant for "request_sent" and "request_received"
+}
+
+export interface Challenge {
+    friend: Friend | null;
+    type: "ranked" | "casual";
+    timeControl: "1m" | "3m" | "5m" | "10m";
+    chatEnabled: boolean;
+    side: "white" | "black" | "random";
 }

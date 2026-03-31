@@ -1,72 +1,120 @@
 "use client"
-import React, { useState } from 'react';
-import { 
-  User, Edit3, Trophy, Swords, 
-  Puzzle, Users, History, CheckCircle2, 
+import React, { useEffect, useState } from 'react';
+import {
+  User, Edit3, Trophy, Swords,
+  Puzzle, Users, History, CheckCircle2,
   Globe, Calendar, Camera, ShieldCheck,
   TrendingUp, MapPin
 } from 'lucide-react';
 import { EditProfileDialog } from '@/components/profile/EditDailog';
+import { useParams } from 'next/navigation';
+import { Friend } from '@/types/social';
+import axios from 'axios';
+import apiClient from '@/api/axois';
+import LoadingSpinner from '@/components/LoadingSpinner';
+
+interface UserProfile {
+  _id: string,
+  username: string,
+  fullName: string,
+  email: string,
+  avatar: string,
+  elo: number,
+  lastLogin: string,
+  isVerified: boolean,
+  isOnline: boolean,
+  bio: string,
+  gender: "male" | "female" | "other",
+  role: string,
+  streaks: number,
+  aiCredits: number,
+}
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('games');
   const [isEditing, setIsEditing] = useState(false);
+  const { id } = useParams();
 
-  const profile = {
-    username: "Grandmaster_OKLCH",
-    fullName: "Alex River",
-    bio: "Chess enthusiast & UI Designer. Chasing the 2000 ELO dream.",
-    location: "Stockholm, SE",
-    joined: "March 2024",
-    elo: 1850,
-    winRate: "64%",
-    totalGames: 1420
-  };
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  const getUserProfile = async () => {
+    try {
+      const response = await apiClient.get(`/v1/users/${id}`);
+      const user = response.data.data as UserProfile;
+      console.log("[User Profile] Response: ", user);
+      setUserProfile(user);
+    } catch (error) {
+      console.log("[User Profile] Error Fetching User Profile: ", error);
+    }
+  }
+
+  const getFriends = async () => {
+    try {
+      const response = await axios.get(`/api/v1/friends/`);
+      const user = response.data.data as Friend[];
+      console.log("[Get Friends] Response: ", user);
+      setFriends(user);
+    } catch (error) {
+      console.log("[User Profile] Error Fetching User Profile: ", error);
+    }
+  }
+
+  useEffect(() => {
+    getUserProfile();
+    getFriends();
+  }, []);
+
+  if (!userProfile) {
+    return (
+      <div className='min-h-screen w-screen flex justify-center items-center'><LoadingSpinner size={10} /></div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
-      
+
       {/* --- MOBILE ONLY HEADER (Stacks on top) --- */}
       <div className="lg:hidden w-full h-48 bg-linear-to-b from-primary/20 to-background border-b border-border flex flex-col items-center justify-center p-6 text-center">
-         <div className="h-24 w-24 rounded-2xl bg-card border-2 border-primary/20 flex items-center justify-center text-3xl font-black text-primary shadow-xl mb-3">
-            {profile.username[0]}
-         </div>
-         <h1 className="text-xl font-bold flex items-center gap-2">
-            {profile.username} <CheckCircle2 size={16} className="text-primary" />
-         </h1>
+        <div className="h-24 w-24 rounded-2xl bg-card border-2 border-primary/20 flex items-center justify-center text-3xl font-black text-primary shadow-xl mb-3">
+          {userProfile?.avatar ? <img src={userProfile.avatar} alt={userProfile.username} className='w-full h-full object-cover' /> : userProfile?.username?.charAt(0)}
+        </div>
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          {userProfile.username} <CheckCircle2 size={16} className="text-primary" />
+        </h1>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          
+
           {/* --- LEFT SIDE: STICKY PROFILE CARD (Desktop) --- */}
           <aside className="lg:w-1/3 xl:w-1/4">
             <div className="lg:sticky lg:top-24 space-y-6">
               <div className="bg-card border border-border rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden">
                 {/* Subtle Background Decoration */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16" />
-                
+
                 <div className="relative flex flex-col items-center text-center space-y-4">
                   <div className="hidden lg:flex h-32 w-32 rounded-4xl bg-background border border-border items-center justify-center text-5xl font-black text-primary shadow-inner">
-                    {profile.username[0]}
+                    {userProfile.username}
                   </div>
-                  
+
                   <div className="space-y-1">
-                    <h2 className="text-2xl font-black tracking-tight hidden lg:block">{profile.username}</h2>
-                    <p className="text-muted-foreground text-sm font-medium">{profile.fullName}</p>
+                    <h2 className="text-2xl font-black tracking-tight hidden lg:block">{userProfile.username}</h2>
+                    <p className="text-muted-foreground text-sm font-medium">{userProfile.fullName}</p>
                   </div>
 
                   <p className="text-sm leading-relaxed text-muted-foreground/90 italic">
-                    "{profile.bio}"
+                    "{userProfile.bio}"
                   </p>
 
                   <div className="w-full pt-4 space-y-3">
-                     <ProfileDetail icon={<MapPin size={16}/>} text={profile.location} />
-                     <ProfileDetail icon={<Calendar size={16}/>} text={`Joined ${profile.joined}`} />
-                     <ProfileDetail icon={<ShieldCheck size={16}/>} text="Verified Master" />
+                    <ProfileDetail icon={<MapPin size={16} />} text={userProfile.lastLogin} />
+                    <ProfileDetail icon={<Calendar size={16} />} text={`Joined ${userProfile.lastLogin}`} />
+                    <ProfileDetail icon={<ShieldCheck size={16} />} text="Verified Master" />
                   </div>
 
-                  <button 
+                  <button
                     onClick={() => setIsEditing(!isEditing)}
                     className="w-full mt-4 flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-2xl font-bold hover:brightness-110 transition-all shadow-lg shadow-primary/20"
                   >
@@ -77,17 +125,17 @@ export default function ProfilePage() {
 
               {/* Quick Stats Card */}
               <div className="bg-primary/5 border border-primary/10 rounded-4xl p-6 space-y-4">
-                 <h4 className="text-xs font-black uppercase tracking-widest text-primary/70 px-2">Performance</h4>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1 px-2">
-                       <p className="text-2xl font-black">{profile.elo}</p>
-                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Blitz ELO</p>
-                    </div>
-                    <div className="space-y-1 px-2">
-                       <p className="text-2xl font-black">{profile.winRate}</p>
-                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Win Ratio</p>
-                    </div>
-                 </div>
+                <h4 className="text-xs font-black uppercase tracking-widest text-primary/70 px-2">Performance</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1 px-2">
+                    <p className="text-2xl font-black">{userProfile.elo}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Blitz ELO</p>
+                  </div>
+                  <div className="space-y-1 px-2">
+                    <p className="text-2xl font-black">{userProfile.lastLogin}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Win Ratio</p>
+                  </div>
+                </div>
               </div>
             </div>
           </aside>
@@ -96,19 +144,19 @@ export default function ProfilePage() {
           <main className="flex-1 space-y-8">
             {/* Desktop-only Tab Switcher */}
             <div className="flex bg-card/50 p-1.5 rounded-2xl border border-border w-fit">
-              <button 
+              <button
                 onClick={() => setActiveTab('games')}
                 className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'games' ? 'bg-card text-primary shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Match History
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('friends')}
                 className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'friends' ? 'bg-card text-primary shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Friends
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('puzzles')}
                 className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'puzzles' ? 'bg-card text-primary shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
               >
@@ -120,12 +168,12 @@ export default function ProfilePage() {
             <div className="animate-in fade-in duration-500">
               {activeTab === 'games' && (
                 <div className="grid gap-4">
-                   <h3 className="text-lg font-bold flex items-center gap-2 mb-2">
-                     <History size={20} className="text-primary" /> Recent Matches
-                   </h3>
-                   <GameRow opponent="Magnus_Lover" result="Win" date="2h ago" elo="+12" />
-                   <GameRow opponent="CheckmatePro" result="Loss" date="5h ago" elo="-8" />
-                   <GameRow opponent="KasparovFan" result="Draw" date="Yesterday" elo="0" />
+                  <h3 className="text-lg font-bold flex items-center gap-2 mb-2">
+                    <History size={20} className="text-primary" /> Recent Matches
+                  </h3>
+                  <GameRow opponent="Magnus_Lover" result="Win" date="2h ago" elo="+12" />
+                  <GameRow opponent="CheckmatePro" result="Loss" date="5h ago" elo="-8" />
+                  <GameRow opponent="KasparovFan" result="Draw" date="Yesterday" elo="0" />
                 </div>
               )}
 
@@ -189,7 +237,7 @@ function GameRow({ opponent, result, date, elo }: any) {
           <p className="text-[10px] uppercase font-bold text-muted-foreground">ELO</p>
         </div>
         <button className="p-2 hover:bg-accent rounded-lg text-muted-foreground transition-colors">
-           <TrendingUp size={16} />
+          <TrendingUp size={16} />
         </button>
       </div>
     </div>

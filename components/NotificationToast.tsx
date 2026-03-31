@@ -3,6 +3,7 @@ import Avatar from '@/features/social/Avatar';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { dismissNotification } from '@/redux/notificationSlice';
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 
 export const NotificationToast = () => {
     const dispatch = useAppDispatch();
@@ -10,6 +11,8 @@ export const NotificationToast = () => {
 
     // We only care about the latest one for the top-right pop
     const current = notifications[0];
+
+    console.log();
 
     if (!current) return null;
 
@@ -35,7 +38,7 @@ export const NotificationToast = () => {
                             onClick={() => dispatch(dismissNotification(current._id))}
                             className="text-muted-foreground hover:text-foreground"
                         >
-                            ✕
+                            <X />
                         </button>
                     </div>
                 </motion.div>
