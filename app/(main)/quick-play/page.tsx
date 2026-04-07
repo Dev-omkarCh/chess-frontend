@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { useMatchMaking } from "@/hooks/useMatchMaking";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
+import { MatchPreferences } from "@/types/game";
 
 interface TimeControl {
     label: string;
@@ -21,10 +22,10 @@ interface TimeControl {
 }
 
 const TIME_CONTROLS: TimeControl[] = [
-    { label: "1 min", seconds: 60, desc: "Bullet", icon: <HiLightningBolt className="text-yellow-400 text-xl" /> },
-    { label: "3 min", seconds: 180, desc: "Blitz", icon: <HiLightningBolt className="text-orange-400 text-xl" /> },
-    { label: "5 min", seconds: 300, desc: "Rapid", icon: <GiChessBishop className="text-emerald-400 text-xl" /> },
-    { label: "10 min", seconds: 600, desc: "Classical", icon: <GiChessKing className="text-blue-400 text-xl" /> },
+    { label: "1+0", seconds: 60, desc: "Bullet", icon: <HiLightningBolt className="text-yellow-400 text-xl" /> },
+    { label: "3+0", seconds: 180, desc: "Blitz", icon: <HiLightningBolt className="text-orange-400 text-xl" /> },
+    { label: "5+0", seconds: 300, desc: "Rapid", icon: <GiChessBishop className="text-emerald-400 text-xl" /> },
+    { label: "10+0", seconds: 600, desc: "Classical", icon: <GiChessKing className="text-blue-400 text-xl" /> },
 ];
 
 export const SetupScreen = () => {
@@ -35,7 +36,13 @@ export const SetupScreen = () => {
     const router = useRouter();
     const startGame = () => {
         router.replace("/matchmaking");
-        joinQueue({ timeControl: TIME_CONTROLS[selectedTime].label });
+        const preferences: MatchPreferences = {
+            timeControl: TIME_CONTROLS[selectedTime].label,
+            isChatEnabled: chatEnabled,
+            type: "ranked",
+            color: "random"
+        }
+        joinQueue(preferences);
     }
 
     return (
