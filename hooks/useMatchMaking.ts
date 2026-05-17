@@ -2,6 +2,7 @@ import { useSocket } from "@/context/SocketProvider";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { RootState } from "@/lib/store";
 import { startSearching, stopSearching } from "@/redux/gameSlice";
+import { MatchPreferences } from "@/types/game";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
 
@@ -10,6 +11,13 @@ export const useMatchMaking = () => {
     const dispatch = useAppDispatch();
     const router = useRouter();
     const isSearching = useAppSelector((state: RootState) => state.game.isSearching);
+
+    const defaultPreferences: MatchPreferences = {
+        timeControl: '10+0',
+        isChatEnabled: true,
+        type: 'ranked',
+        color: 'random'
+    }
 
     useEffect(() => {
         if (!socket) return;
@@ -27,7 +35,7 @@ export const useMatchMaking = () => {
     }, [socket, dispatch, router]);
 
     // Use useCallback to ensure the function "refreshes" when socket changes
-    const joinQueue = useCallback((preferences = { timeControl: '10m' }) => {
+    const joinQueue = useCallback((preferences: MatchPreferences = defaultPreferences) => {
         if (!socket) {
             console.log('[MatchMaking] ❌ Cannot join: Socket not connected yet');
             return;
