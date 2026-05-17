@@ -1,20 +1,5 @@
 "use client";
 
-/**
- * Chess Matchmaking — Waiting Page
- *
- * Industry-standard matchmaking UX:
- *  • Simulated matchmaking hook (swap useMatchmaking for your real WS/polling logic)
- *  • Live elapsed timer
- *  • Animated chess board grid background
- *  • Pulsing sonar rings
- *  • Floating chess piece silhouettes
- *  • Opponent avatar "found" reveal with celebration burst
- *  • 5-min timeout dialog with retry / back options
- *  • Fully responsive (mobile-first)
- *  • Accessible: aria-live regions, reduced-motion safe
- */
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -34,7 +19,7 @@ import { getPiece } from "@/lib/pieces-registry";
 import { RootState } from "@/lib/store";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { useSocket } from "@/context/SocketProvider";
-import { setStats } from "@/redux/gameSlice";
+import "./index.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,10 +34,6 @@ interface MatchResult {
         country: string;
     };
 }
-
-// ─── Simulated matchmaking hook ───────────────────────────────────────────────
-// Replace this with your real WebSocket / SSE / polling logic.
-// It returns { status, elapsed, match, cancel, retry }
 
 const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const SIMULATE_MATCH_AT = 120;         // seconds — set to a big number for real usage
@@ -177,7 +158,7 @@ function ChessBoardBg() {
 }
 
 /** Floating chess piece silhouettes */
-const PIECES = ["♟", "♞", "♝", "♜", "♛", "♚", "♙", "♘", "♗", "♖", "♕", "♔"];
+// const PIECES = ["♟", "♞", "♝", "♜", "♛", "♚", "♙", "♘", "♗", "♖", "♕", "♔"];
 
 function FloatingPieces() {
     // Deterministic positions so SSR matches client
@@ -412,71 +393,12 @@ function StatPill({ icon: Icon, label }: { icon: React.ElementType; label: strin
     );
 }
 
-// ─── Keyframe styles (injected once) ──────────────────────────────────────────
-
-const KEYFRAMES = `
-@keyframes bgDrift {
-  0%   { background-position: 0 0, 0 30px, 30px -30px, -30px 0px; }
-  100% { background-position: 60px 60px, 60px 90px, 90px 30px, 30px 60px; }
-}
-@keyframes floatPiece {
-  0%, 100% { transform: translateY(0px) rotate(0deg);   opacity: 0.06; }
-  33%       { transform: translateY(-18px) rotate(4deg); opacity: 0.10; }
-  66%       { transform: translateY(8px) rotate(-3deg);  opacity: 0.04; }
-}
-@keyframes sonarPulse {
-  0%   { transform: scale(0.4); opacity: 0.7; }
-  100% { transform: scale(1);   opacity: 0;   }
-}
-@keyframes pieceBob {
-  0%, 100% { transform: translateY(0);   }
-  50%       { transform: translateY(-5px); }
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0);   }
-}
-@keyframes burstParticle {
-  0%   { transform: rotate(var(--angle)) translateX(0)  scale(1); opacity: 1; }
-  100% { transform: rotate(var(--angle)) translateX(60px) scale(0); opacity: 0; }
-}
-@keyframes slideUp {
-  from { transform: translateY(40px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0);    }
-}
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 0%, transparent); }
-  50%       { box-shadow: 0 0 32px 8px color-mix(in oklch, var(--primary) 25%, transparent); }
-}
-@keyframes shimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position:  200% center; }
-}
-@keyframes dotBlink {
-  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-  40%           { opacity: 1;   transform: scale(1);   }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.001ms !important; }
-}
-`;
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
 export default function MatchmakingPage() {
     const router = useRouter();
     const { status, elapsed, match, cancel, retry } = useMatchmaking();
     const [redirecting, setRedirecting] = useState(false);
     const { onlineUsers, usersInQueue } = useAppSelector((state: RootState) => state.game);
-    const { socket } = useSocket();
-    const dispatch = useAppDispatch();
+    // const { socket } = useSocket();
 
     // Auto-redirect when match is found
     useEffect(() => {
@@ -485,7 +407,8 @@ export default function MatchmakingPage() {
                 setRedirecting(true);
                 // Give "found" animation a moment to play, then navigate
                 setTimeout(() => {
-                    router.push(`/chess/${match.gameId}`);
+                    // router.push(`/chess/${match.gameId}`);
+                    cancel();
                 }, 1200);
             }, 600);
             return () => clearTimeout(t);
@@ -512,9 +435,6 @@ export default function MatchmakingPage() {
 
     return (
         <>
-            {/* Inject keyframes once */}
-            <style>{KEYFRAMES}</style>
-
             <main className="relative min-h-dvh bg-background flex flex-col items-center justify-center overflow-hidden px-4 py-10">
 
                 {/* ── Background layers ── */}
@@ -715,7 +635,7 @@ function EngagementTip({ elapsed }: { elapsed: number }) {
                 "animate-[fadeIn_0.4s_ease-out_forwards]"
             )}
         >
-            <span className="text-2xl flex-shrink-0 leading-none mt-0.5">{tip.icon}</span>
+            <span className="text-2xl shrink-0 leading-none mt-0.5">{tip.icon}</span>
             <div>
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-0.5">
                     Chess Tip

@@ -12,7 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { useMatchMaking } from "@/hooks/useMatchMaking";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
-import { MatchPreferences } from "@/types/game";
+import { useSelector } from "react-redux";
+import { RootState } from "@/lib/store";
 
 interface TimeControl {
     label: string;
@@ -31,24 +32,27 @@ const TIME_CONTROLS: TimeControl[] = [
 export const SetupScreen = () => {
     const [selectedTime, setSelectedTime] = useState(3);
     const [chatEnabled, setChatEnabled] = useState(true);
+    const userElo = useSelector((state: RootState) => state.auth.user?.elo);
 
     const { isSearching, joinQueue, leaveQueue } = useMatchMaking();
     const router = useRouter();
     const startGame = () => {
         router.replace("/matchmaking");
-        const preferences: MatchPreferences = {
-            timeControl: TIME_CONTROLS[selectedTime].label,
-            isChatEnabled: chatEnabled,
-            type: "ranked",
-            color: "random"
-        }
-        joinQueue(preferences);
+        joinQueue(
+            {
+                preferences: {
+                    timeControl: TIME_CONTROLS[selectedTime].label,
+                    type: "ranked",
+                    chatEnabled
+                },
+                userDetails: { elo: userElo }
+            });
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-start gap-5">
+        <div className="min-h-screen min-w-screen bg-background flex flex-col items-center justify-start gap-5">
             <Navbar />
-            <div className="w-full max-w-lg">
+            <div className="w-full max-w-lg px-5 sm:w-[90%] pb-5">
                 <button onClick={() => router.push("/dashboard")}
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-10 transition-colors group font-medium">
                     <BsArrowLeft className="group-hover:-translate-x-0.5 transition-transform" />
