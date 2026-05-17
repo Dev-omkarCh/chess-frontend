@@ -6,18 +6,16 @@ import { MatchPreferences } from "@/types/game";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
 
+interface JoinQueueProps {
+    preferences: { timeControl: string, type: string, chatEnabled: boolean };
+    userDetails: { elo?: number, username?: string, name?: string };
+}
+
 export const useMatchMaking = () => {
     const { socket } = useSocket();
     const dispatch = useAppDispatch();
     const router = useRouter();
     const isSearching = useAppSelector((state: RootState) => state.game.isSearching);
-
-    const defaultPreferences: MatchPreferences = {
-        timeControl: '10+0',
-        isChatEnabled: true,
-        type: 'ranked',
-        color: 'random'
-    }
 
     useEffect(() => {
         if (!socket) return;
@@ -35,13 +33,19 @@ export const useMatchMaking = () => {
     }, [socket, dispatch, router]);
 
     // Use useCallback to ensure the function "refreshes" when socket changes
-    const joinQueue = useCallback((preferences: MatchPreferences = defaultPreferences) => {
+    const joinQueue = useCallback(({ preferences, userDetails }: JoinQueueProps) => {
         if (!socket) {
             console.log('[MatchMaking] ❌ Cannot join: Socket not connected yet');
             return;
         }
         dispatch(startSearching());
-        socket.emit('match:queue-join', preferences);
+
+        if (!userDetails.elo) {
+            console.log('[MatchMaking] ❌ Cannot join: User has no ELO');
+            return;
+        }
+
+        socket.emit('match:queue-join', { preferences, userDetails });
     }, [socket, dispatch]); // Re-creates function when socket is no longer null
 
     const leaveQueue = useCallback(() => {

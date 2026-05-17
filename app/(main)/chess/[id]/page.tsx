@@ -168,8 +168,7 @@ export default function ChessPage() {
             }
         });
 
-    }, [socket, dispatch, color])
-
+    }, [socket, dispatch, color]);
 
     const endGame = useCallback((result: string) => {
         setActiveTimer(null);
@@ -203,7 +202,7 @@ export default function ChessPage() {
         setChatEnabled(chat); setChatOpen(false); setUnread(0); setChatMsgs([]);
         setShowResult(false); setGameResult("");
         setScreen("game");
-        joinQueue();
+        // joinQueue();
         router.push("/matchmaking");
     }, []);
 
@@ -599,10 +598,11 @@ export default function ChessPage() {
     return (
         <TooltipProvider>
             {/* Full-height layout: header + body */}
+
             <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
 
                 {/* ═══ HEADER ═══ */}
-                <header className="flex-shrink-0 h-14 border-b border-border bg-card flex items-center px-4 gap-3 z-50">
+                <header className="shrink-0 h-14 border-b border-border bg-card flex items-center px-4 gap-3 z-50">
                     <div className="w-px h-5 bg-border" />
                     {/* <TbChessFilled className="text-xl text-primary" /> */}
                     <button onClick={() => router.replace("/dashboard")}>
