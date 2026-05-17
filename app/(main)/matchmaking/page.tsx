@@ -623,7 +623,7 @@ export default function MatchmakingPage() {
 
                     {/* ── Stats row ── */}
                     <div className="flex flex-wrap items-center justify-center gap-2">
-                        <StatPill icon={Users} label={`${usersInQueue.toLocaleString()} available`} />
+                        <StatPill icon={Users} label={`${usersInQueue} available`} />
                         <StatPill icon={Shield} label="Rated match" />
                         <StatPill icon={Zap} label="Rapid · 10+0" />
                     </div>
