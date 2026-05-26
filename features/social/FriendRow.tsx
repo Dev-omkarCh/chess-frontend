@@ -3,11 +3,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { cn, eloLabel } from "@/lib/utils";
-import { Friend } from "@/types/social";
+import { Challenge, Friend } from "@/types/social";
 import { useState } from "react";
 import Avatar from "./Avatar";
 import { CheckCheck, Eye, Swords, Trophy } from "lucide-react";
 import Link from "next/link";
+import ChallengeDailog from "@/components/social/ChallengeDailog";
+import ChallengeDialog from "@/components/social/ChallengeDailog";
+import apiClient from "@/api/axois";
+import toast from "react-hot-toast";
 
 interface FriendRowProps {
     friend: Friend;
@@ -19,12 +23,16 @@ function FriendRow({ friend, onGameRequest }: FriendRowProps) {
     const [actionsVisible, setActionsVisible] = useState(false);
     const [gameReqSent, setGameReqSent] = useState(false);
     const { label, color } = eloLabel(friend.elo);
+    const [challengeDialogOpen, setChallengeDialogOpen] = useState(false);
 
-    function handleGameReq() {
-        if (friend.isOnline) {
-            setGameReqSent(true);
-            onGameRequest(friend._id);
-            setTimeout(() => setGameReqSent(false), 2000);
+    const handleSendChallenge = async (challenge: Challenge) => {
+        console.log("Challenge: ", challenge);
+
+        try {
+            const response = await apiClient(`/v1/friends/${challenge?.friend?._id}/challenge`);
+            toast.success(`Challenge send to ${challenge?.friend?.username}`);
+        } catch (error) {
+            console.log("Error Creating Challenge: ", error);
         }
     }
 
@@ -60,9 +68,9 @@ function FriendRow({ friend, onGameRequest }: FriendRowProps) {
                 actionsVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-2 pointer-events-none"
             )}>
                 <button
-                    onClick={handleGameReq}
+                    onClick={() => setChallengeDialogOpen(true)}
                     title={gameReqSent ? "Sent!" : "Send Game Request"}
-                    disabled={!friend.isOnline || gameReqSent}
+                    // disabled={!friend.isOnline || gameReqSent}
                     className={cn(
                         "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-90",
                         gameReqSent || friend.isOnline
@@ -81,6 +89,13 @@ function FriendRow({ friend, onGameRequest }: FriendRowProps) {
                     </button>
                 </Link>
             </div>
+            <ChallengeDialog
+                open={challengeDialogOpen}
+                onOpenChange={setChallengeDialogOpen}
+                friend={friend}           // Friend | null
+                onSendChallenge={handleSendChallenge} // called with full Challenge object
+                isClose={false}                   // lock dialog open (e.g. while loading)
+            />
         </div>
     );
 }
