@@ -3,7 +3,8 @@ import { useState } from 'react';
 import {
     Play, Users, Bot, Settings, Trophy,
     History, Swords, ChevronDown, User,
-    LogOut, BarChart3, Menu, X, Home, Search
+    LogOut, BarChart3, Menu, X, Home, Search,
+    Coffee
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useRouter } from 'next/navigation';
@@ -41,6 +42,7 @@ export default function ResponsiveChessDashboard() {
                         <SidebarItem icon={<History size={20} />} label="Archive" isOpen={isDesktopCollapsed} />
                         <SidebarItem icon={<BarChart3 size={20} />} label="Stats" isOpen={isDesktopCollapsed} />
                         <SidebarItem icon={<Users size={20} />} label="Social" isOpen={isDesktopCollapsed} />
+                        <SidebarItem icon={<Coffee size={20} />} label="Buy me Coffee" isOpen={isDesktopCollapsed} to='/support' />
                     </nav>
                 </aside>
             </div>
@@ -56,6 +58,7 @@ export default function ResponsiveChessDashboard() {
                     <SidebarItem icon={<History size={20} />} label="Archive" isOpen={isSidebarOpen} />
                     <SidebarItem icon={<BarChart3 size={20} />} label="Stats" isOpen={isSidebarOpen} />
                     <SidebarItem icon={<Users size={20} />} label="Social" isOpen={isSidebarOpen} />
+                    <SidebarItem icon={<Coffee size={20} />} label="Buy me Coffee" isOpen={isSidebarOpen} to='/support' />
                     <SidebarItem icon={<Trophy size={20} />} label="Tournaments" isOpen={isSidebarOpen} muted />
                 </nav>
                 <div className="p-4 border-t border-border">
@@ -170,9 +173,21 @@ export default function ResponsiveChessDashboard() {
 
 // --- SUB-COMPONENTS ---
 
-function SidebarItem({ icon, label, active = false, isOpen, muted }: { icon: any, label: string, active?: boolean, isOpen: boolean, muted?: boolean }) {
+function SidebarItem({ icon, label, active = false, isOpen, muted, to }: { icon: any, label: string, active?: boolean, isOpen: boolean, muted?: boolean, to?: string }) {
+    const router = useRouter();
+
+    const navigate = (path?: string) => {
+        // TODO: Add validation
+        if (path) router.push(path);
+    }
+
     return (
-        <button className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${muted ? 'opacity-50 cursor-not-allowed text-muted-foreground' : active ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'hover:bg-accent text-muted-foreground hover:text-foreground'}`}>
+        <button
+            className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all 
+            ${muted ? 'opacity-50 cursor-not-allowed text-muted-foreground' : active ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' :
+                    'hover:bg-accent text-muted-foreground hover:text-foreground'}`}
+            onClick={() => navigate(to)}
+        >
             <span className="shrink-0">{icon}</span>
             {!isOpen && <span className="font-semibold truncate">{label}</span>}
         </button>
