@@ -20,6 +20,9 @@ import { RootState } from "@/lib/store";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { useSocket } from "@/context/SocketProvider";
 import "./index.css";
+import { MatchPreferences } from "@/types/game";
+import { stopSearching } from "@/redux/gameSlice";
+import { api } from "@/lib/api/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,13 +107,17 @@ function useMatchmaking() {
     useEffect(() => {
         if (!socket) return;
 
-        socket.on('match:found', ({ gameId, white, black }: { gameId: string; white: string; black: string }) => {
+        console.log('[Socket] ✅ Matchmaking Listeners Active:', socket.id);
+
+        socket.on('match:found', ({ gameId }: { gameId: string; color: string; opponent: string, pref: MatchPreferences }) => {
             stopTimer();
             setStatus("found");
             router.push(`/chess/${gameId}`);
-            // Optionally fetch opponent details here using gameId, then setMatch(...)
         });
 
+        return () => {
+            socket.off('match:found');
+        };
     }, [socket, dispatch, router]) // Include socket and dispatch in dependencies to avoid warnings;
 
     return { status, elapsed, match, cancel, retry };

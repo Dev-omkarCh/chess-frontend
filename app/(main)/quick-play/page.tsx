@@ -42,7 +42,7 @@ export const SetupScreen = () => {
             {
                 preferences: {
                     timeControl: TIME_CONTROLS[selectedTime].label,
-                    type: "ranked",
+                    type: "rated",
                     chatEnabled
                 },
                 userDetails: { elo: userElo }
