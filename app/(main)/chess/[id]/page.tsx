@@ -155,10 +155,10 @@ export default function ChessPage() {
             dispatch(setGameState({ fen, white, black, color, history }));
         });
 
-        socket.on("game:move-made", ({ move, fen, turn }: { move: { from: Square; to: Square; promotion: PromotionPiece | null }; fen: string; turn: 'w' | 'b' }) => {
+        socket.on("game:move-made", ({ move, fen, turn, history }: { move: { from: Square; to: Square; promotion: PromotionPiece | null }; fen: string; turn: 'w' | 'b'; history: string[] }) => {
             const { from, to, promotion } = move;
             if (turn === color) {
-                console.log("[game:move-made] Received Move", { move, fen, turn });
+                console.log("[game:move-made] Received Move", { move, fen, turn, history });
                 console.log(`[Execute] Executing ${color === "w" ? "Black" : "White"} Move on board`);
                 if (promotion) {
                     console.log(`[Promotion] Move includes promotion to ${promotion.toUpperCase()}`);
@@ -168,8 +168,13 @@ export default function ChessPage() {
             }
         });
 
-    }, [socket, dispatch, color])
+        socket.on("game:over", ({ winner, reason, fen, pgn }: { winner: string, reason: string, fen: string, pgn: string }) => {
+            console.log("[game:over] Game Over", { winner, reason, fen, pgn });
+            window.alert(`You ${reason} ${winner === color ? "won" : "lost"}`);
+            // router.push("/");
+        });
 
+    }, [socket, dispatch, color]);
 
     const endGame = useCallback((result: string) => {
         setActiveTimer(null);
@@ -203,7 +208,7 @@ export default function ChessPage() {
         setChatEnabled(chat); setChatOpen(false); setUnread(0); setChatMsgs([]);
         setShowResult(false); setGameResult("");
         setScreen("game");
-        joinQueue();
+        // joinQueue();
         router.push("/matchmaking");
     }, []);
 
@@ -282,7 +287,14 @@ export default function ChessPage() {
                 color: r.color, moveNumber: Math.ceil(gc.history().length / 2), fen: gc.fen(),
             };
             setMoves(p => [...p, entry]); setViewIndex(-1); setActiveTimer(gc.turn());
-            if (gc.isCheckmate()) { beep("check"); setTimeout(() => endGame(`${gc.turn() === "w" ? "Black" : "White"} wins by checkmate! 🏆`), 80); }
+            if (gc.isCheckmate()) {
+                beep("check");
+                setTimeout(() => {
+                    endGame(`${gc.turn() === "w" ? "Black" : "White"} wins by checkmate! 🏆`);
+                    handleResult();
+                }
+                    , 80);
+            }
             else if (gc.isStalemate()) setTimeout(() => endGame("Draw by stalemate"), 80);
             else if (gc.isDraw()) setTimeout(() => endGame("Draw"), 80);
             else if (gc.isCheck()) { beep("check"); setGameStatus("check"); }
@@ -589,6 +601,10 @@ export default function ChessPage() {
         }));
     };
 
+    const handleResult = () => {
+        console.log("Game over");
+    };
+
     console.log("render");
 
     // ── Screen router ────────────────────────────────────────────────────────
@@ -599,10 +615,11 @@ export default function ChessPage() {
     return (
         <TooltipProvider>
             {/* Full-height layout: header + body */}
+
             <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
 
                 {/* ═══ HEADER ═══ */}
-                <header className="flex-shrink-0 h-14 border-b border-border bg-card flex items-center px-4 gap-3 z-50">
+                <header className="shrink-0 h-14 border-b border-border bg-card flex items-center px-4 gap-3 z-50">
                     <div className="w-px h-5 bg-border" />
                     {/* <TbChessFilled className="text-xl text-primary" /> */}
                     <button onClick={() => router.replace("/dashboard")}>

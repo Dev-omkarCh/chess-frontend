@@ -49,16 +49,17 @@ export default function LoginPage() {
 
         <div className="space-y-6">
           <h2 className="text-5xl font-bold leading-tight">
-            Design with <br />
-            <span className="text-primary/80">Perceptual</span> Precision.
+            Login with <br />
+            <span className="text-primary/80">BetterChess</span> AI.
           </h2>
           <p className="text-lg text-muted-foreground max-w-md">
-            Experience the next generation of UI with OKLCH color spaces.
-            Consistent contrast, vibrant hues, and effortless dark mode.
+            Experience the Chess with AI Powered engine.
+            where you can learn from your past games and ask Ai your Areas of Improvement.
+            Challege Friends for game.
           </p>
 
           <ul className="space-y-4 pt-4">
-            {["Built-in Accessibility", "P3 Color Gamut Support", "Fluid Design Tokens"].map((item) => (
+            {["Analyze your games and get feedback from AI", "Challenge friends for game", "Learn from past games"].map((item) => (
               <li key={item} className="flex items-center gap-3 text-sm font-medium">
                 <CheckCircle2 className="text-primary" size={18} />
                 {item}
@@ -68,7 +69,7 @@ export default function LoginPage() {
         </div>
 
         <div className="text-sm text-muted-foreground">
-          © 2026 Nexus AI Platforms. All rights reserved.
+          © 2026 BetterChess AI. All rights reserved.
         </div>
       </div>
 
@@ -77,7 +78,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-8">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight">Login</h1>
-            <p className="text-muted-foreground text-sm">Enter your credentials to access your workspace</p>
+            <p className="text-muted-foreground text-sm">Enter your credentials to play your next match</p>
           </div>
 
           <div className="bg-card text-card-foreground border border-border p-8 rounded-3xl shadow-2xl space-y-6">
@@ -147,7 +148,7 @@ export default function LoginPage() {
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?
             <button
-              className="text-primary font-bold hover:underline"
+              className="text-primary font-bold hover:underline ml-2"
               onClick={() => router.push("/signup")}
             >Create one</button>
           </p>

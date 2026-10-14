@@ -25,73 +25,108 @@
 }
 
 :root {
-  /* --- LIGHT MODE (Clean & Airy) --- */
+  /* ---------------------------------------------------------------
+     Two hues drive the whole theme. Change these to re-tint the app:
+       --h    brand color   (150 = green, 172 = emerald-teal, 200 = cyan)
+       --h-s  surface tint  (the cool slate behind everything: 200-230)
+     Teal brand on a slightly bluer slate gives depth without clashing.
+     --------------------------------------------------------------- */
+  --h: 172;
+  --h-s: 215;
 
-  /* Modern Blue Hue */
-  --h: 180;
-  /* [60, 180] */
+  /* --- LIGHT MODE (Clean, cool and airy) --- */
 
-  --background: oklch(0.98 0.005 var(--h));
-  --foreground: oklch(0.2 0.04 var(--h));
+  /* Page is a faint cool tint; cards are pure white so they lift off it */
+  --background: oklch(0.972 0.012 var(--h-s));
+  --foreground: oklch(0.22 0.035 var(--h-s));
 
-  --card: oklch(99.0 0 var(--h));
-  --card-hover: oklch(0.97 0 var(--h));
-  --card-foreground: oklch(0.2 0.04 var(--h));
+  --card: oklch(1 0 0);
+  --card-hover: oklch(0.975 0.012 var(--h-s));
+  --card-foreground: oklch(0.22 0.035 var(--h-s));
 
-  --popover: oklch(99.0 0 var(--h));
-  --popover-foreground: oklch(0.92 0 var(--h));
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.035 var(--h-s));
 
-  /* bg-emerald-500 :  oklch(69.6% 0.17 162.48) */
-  --primary: oklch(0.69 0.17 var(--h));
-  /* Rich Brand Blue */
+  /* Deeper teal so white button text and teal links stay readable */
+  --primary: oklch(0.54 0.105 var(--h));
   --primary-foreground: oklch(0.99 0 0);
 
-  --muted: oklch(0.96 0.01 var(--h));
-  --muted-foreground: oklch(0.45 0.02 var(--h));
+  --muted: oklch(0.955 0.015 var(--h-s));
+  --muted-foreground: oklch(0.46 0.03 var(--h-s));
 
-  --border: oklch(0.9 0.02 var(--h));
-  --accent: oklch(0.94 0.03 var(--h));
+  --border: oklch(0.89 0.022 var(--h-s));
+  --accent: oklch(0.945 0.035 var(--h));
 
   /* A strong red for danger states */
-  --danger: oklch(0.50 0.23 20);
+  --danger: oklch(0.55 0.21 25);
   --danger-foreground: oklch(55.331% 0.20927 29.686);
 
   --number: oklch(62.3% 0.214 259.815);
 }
 
 .dark {
-  /* --- GEMINI DARK MODE (Deep Charcoal/Blue) --- */
+  /* --- DARK MODE (Deep slate, layered surfaces, bright mint accent) --- */
 
-  /* Background: Deepest blue-tinted gray (The "Black" feel) */
-  --background: oklch(0.12 0.015 var(--h));
-  --foreground: oklch(0.92 0.01 var(--h));
-  /* Soft white text to reduce eye strain */
+  /* Three clear steps: page (darkest) -> card -> popover/hover (lightest) */
+  --background: oklch(0.17 0.025 var(--h-s));
+  --foreground: oklch(0.95 0.01 var(--h-s));
 
-  /* Card: Slightly lighter than background to create 'layers' */
-  --card: oklch(0.16 0.015 var(--h));
-  --card-hover: oklch(0.18 0.01 var(--h));
-  --card-foreground: oklch(0.92 0.01 var(--h));
+  --card: oklch(0.225 0.03 var(--h-s));
+  --card-hover: oklch(0.255 0.034 var(--h-s));
+  --card-foreground: oklch(0.95 0.01 var(--h-s));
 
-  --popover: oklch(0.20 0.02 var(--h));
-  --popover-foreground: oklch(0.92 0.01 var(--h));
+  --popover: oklch(0.26 0.032 var(--h-s));
+  --popover-foreground: oklch(0.95 0.01 var(--h-s));
 
-  /* Primary: Brighter Blue for Dark Mode */
-  --primary: oklch(0.72 0.15 var(--h));
-  --primary-foreground: oklch(0.1 0.05 var(--h));
-  /* Dark text on bright button */
+  /* Bright mint, with dark text on top for strong contrast */
+  --primary: oklch(0.78 0.145 var(--h));
+  --primary-foreground: oklch(0.17 0.04 var(--h));
 
-  /* Muted elements (Search bars, inactive tabs) */
-  --muted: oklch(0.22 0.02 var(--h));
-  --muted-foreground: oklch(0.65 0.02 var(--h));
+  /* Muted elements (inputs, inactive tabs, secondary text) */
+  --muted: oklch(0.28 0.032 var(--h-s));
+  --muted-foreground: oklch(0.72 0.03 var(--h-s));
 
-  /* Subtle Borders */
-  --border: oklch(0.26 0.02 var(--h));
+  /* Borders you can actually see */
+  --border: oklch(0.35 0.035 var(--h-s));
 
-  /* Hover states / Accents */
-  --accent: oklch(0.28 0.03 var(--h));
+  /* Hover states / Accents: a soft teal wash */
+  --accent: oklch(0.32 0.055 var(--h));
 
-  --danger: oklch(57.7% 0.245 27.325);
+  --danger: oklch(0.68 0.2 25);
   --danger-foreground: oklch(0.98 0.02 20);
 
   --number: oklch(62.3% 0.214 259.815);
+}
+
+@layer base {
+
+  /* Every plain `border` uses the theme border color instead of currentColor */
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+
+  /* Slim, theme-aware scrollbars instead of the chunky default ones */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent) transparent;
+  }
 }

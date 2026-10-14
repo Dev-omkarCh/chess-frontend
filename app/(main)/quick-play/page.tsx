@@ -12,6 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { useMatchMaking } from "@/hooks/useMatchMaking";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "@/lib/store";
 
 interface TimeControl {
     label: string;
@@ -21,27 +23,36 @@ interface TimeControl {
 }
 
 const TIME_CONTROLS: TimeControl[] = [
-    { label: "1 min", seconds: 60, desc: "Bullet", icon: <HiLightningBolt className="text-yellow-400 text-xl" /> },
-    { label: "3 min", seconds: 180, desc: "Blitz", icon: <HiLightningBolt className="text-orange-400 text-xl" /> },
-    { label: "5 min", seconds: 300, desc: "Rapid", icon: <GiChessBishop className="text-emerald-400 text-xl" /> },
-    { label: "10 min", seconds: 600, desc: "Classical", icon: <GiChessKing className="text-blue-400 text-xl" /> },
+    { label: "1+0", seconds: 60, desc: "Bullet", icon: <HiLightningBolt className="text-yellow-400 text-xl" /> },
+    { label: "3+0", seconds: 180, desc: "Blitz", icon: <HiLightningBolt className="text-orange-400 text-xl" /> },
+    { label: "5+0", seconds: 300, desc: "Rapid", icon: <GiChessBishop className="text-emerald-400 text-xl" /> },
+    { label: "10+0", seconds: 600, desc: "Classical", icon: <GiChessKing className="text-blue-400 text-xl" /> },
 ];
 
 export const SetupScreen = () => {
     const [selectedTime, setSelectedTime] = useState(3);
     const [chatEnabled, setChatEnabled] = useState(true);
+    const userElo = useSelector((state: RootState) => state.auth.user?.elo);
 
     const { isSearching, joinQueue, leaveQueue } = useMatchMaking();
     const router = useRouter();
     const startGame = () => {
         router.replace("/matchmaking");
-        joinQueue({ timeControl: TIME_CONTROLS[selectedTime].label });
+        joinQueue(
+            {
+                preferences: {
+                    timeControl: TIME_CONTROLS[selectedTime].label,
+                    type: "rated",
+                    chatEnabled
+                },
+                userDetails: { elo: userElo }
+            });
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-start gap-5">
+        <div className="min-h-screen min-w-screen bg-background flex flex-col items-center justify-start gap-5">
             <Navbar />
-            <div className="w-full max-w-lg">
+            <div className="w-full max-w-lg px-5 sm:w-[90%] pb-5">
                 <button onClick={() => router.push("/dashboard")}
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-10 transition-colors group font-medium">
                     <BsArrowLeft className="group-hover:-translate-x-0.5 transition-transform" />
