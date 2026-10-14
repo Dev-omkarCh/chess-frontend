@@ -22,7 +22,7 @@ export const useMatchMaking = () => {
 
         console.log('[Socket] ✅ Matchmaking Listeners Active:', socket.id);
 
-        socket.on('match:found', ({ gameId }) => {
+        socket.on('match:found', ({ gameId }: { gameId: string; color: string; opponent: string, pref: MatchPreferences }) => {
             dispatch(stopSearching());
             router.push(`/chess/${gameId}`);
         });
